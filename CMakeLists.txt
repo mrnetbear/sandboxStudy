@@ -26,6 +26,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(sandboxStudy
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        dialogconnect.cpp dialogconnect.h dialogconnect.ui dialogprotocol.cpp dialogprotocol.h dialogprotocol.ui dialogsettingvispath.cpp dialogsettingvispath.h dialogsettingvispath.ui digitizeroperation.cpp digitizeroperation.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET sandboxStudy APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
