@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 #include "./ui_mainwindow.h"
+#include "logger.h"
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QProcess>
@@ -9,6 +10,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDebug>
+#include <QIntValidator>
 #include <unistd.h>
 #include "dialogconnect.h"
 #include "dialogsettingvispath.h"
@@ -47,6 +49,10 @@ private slots:
     void on_ButtonDisconnect_clicked();
 
     void on_ButtonStartStop_clicked();
+
+    void on_lineEditRecordLength_editingFinished();
+
+    void on_lineEditRecordLength_returnPressed();
 
 private:
     Ui::MainWindow *ui;

@@ -18,7 +18,12 @@ private:
     CAEN_DGTZ_BoardInfo_t BoardInfo;
     CAEN_DGTZ_EventInfo_t eventInfo;
     CAEN_DGTZ_UINT16_EVENT_t *Evt = NULL;
-    //void *Evt = NULL;
+
+    uint32_t recLength = 4096;
+    uint32_t chMask = 0x1;
+    uint32_t trigThreshold = 32768;
+
+
     char *buffer = NULL;
     int handle[MAXNB];
     int count[MAXNB];
@@ -28,12 +33,13 @@ private:
     bool isAcquiring;
     QThread* acquisitionThread;
 
+
 public:
     explicit DigitizerOperation(QObject *parent = nullptr);
     ~DigitizerOperation();
 
     // Основные методы для работы с оцифровщиком
-    bool openDigitizer(int linkNum = 0, int conetNode = 0, int vmeBaseAddress = 0);
+    bool openDigitizer();
     bool configureDigitizer();
     bool startAcquisition();
     bool stopAcquisition();
@@ -42,6 +48,9 @@ public:
     bool readData();
     bool isOpened() const;
     bool isConfigured() const;
+    bool setRecLength(uint32_t newRecLength);
+    bool setChMask(uint32_t newChMask);
+    bool setTrigThreshold(uint32_t newTrigThreshold);
 
     // Геттеры
     CAEN_DGTZ_ErrorCode getLastError();
@@ -49,6 +58,9 @@ public:
     CAEN_DGTZ_BoardInfo_t getBoardInfo();
     int getTotalEventsCount() const;
     bool getAcquiringStatus();
+    uint32_t getRecLength() const;
+    uint32_t getChMask() const;
+    uint32_t getTrigThreshold() const;
 
 signals:
     void acquisitionStarted();

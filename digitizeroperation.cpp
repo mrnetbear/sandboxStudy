@@ -62,13 +62,17 @@ QString DigitizerOperation::getLastErrorMessage()
     return lastErrorMessage;
 }
 
-bool DigitizerOperation::openDigitizer(int linkNum, int conetNode, int vmeBaseAddress)
+bool DigitizerOperation::openDigitizer()
 {
     emit progressUpdated("Opening digitizer...");
 
     for(int b = 0; b < MAXNB; b++) {
         // Открываем соединение с оцифровщиком через USB
-        ret = CAEN_DGTZ_OpenDigitizer(CAEN_DGTZ_USB, linkNum, conetNode, vmeBaseAddress, &handle[b]);
+        for (int i = 0; i < 256; ++i){
+            ret = CAEN_DGTZ_OpenDigitizer(CAEN_DGTZ_USB, i, 0, 0, &handle[b]);
+            if(ret == CAEN_DGTZ_Success)
+                break;
+        }
 
         if(ret != CAEN_DGTZ_Success) {
             lastErrorMessage = QString("Can't open digitizer on board %1: %2")
@@ -128,7 +132,7 @@ bool DigitizerOperation::configureDigitizer()
             qDebug() << "Warning: Reset failed:" << errorCodeToString(ret);
         }
 
-        ret = CAEN_DGTZ_SetRecordLength(handle[b], 4096);  // Длина каждого波形 в сэмплах
+        ret = CAEN_DGTZ_SetRecordLength(handle[b], 4096);  // Длина каждого окна набора в сэмплах
         if(ret != CAEN_DGTZ_Success) {
             lastErrorMessage = QString("Failed to set record length: %1").arg(errorCodeToString(ret));
             emit errorOccurred(lastErrorMessage);
@@ -418,4 +422,31 @@ int DigitizerOperation::getTotalEventsCount() const
 
 bool DigitizerOperation::getAcquiringStatus(){
     return this->isAcquiring;
+}
+
+bool DigitizerOperation::setRecLength(uint32_t newRecLength){
+    this->recLength = newRecLength;
+    return true;
+}
+
+bool DigitizerOperation::setChMask(uint32_t newChMask){
+    this->chMask = newChMask;
+    return true;
+}
+
+bool DigitizerOperation::setTrigThreshold(uint32_t newTrigThreshold){
+    this->trigThreshold = newTrigThreshold;
+    return true;
+}
+
+uint32_t DigitizerOperation::getRecLength() const{
+    return this->recLength;
+}
+
+uint32_t DigitizerOperation::getChMask() const{
+    return this->chMask;
+}
+
+uint32_t DigitizerOperation::getTrigThreshold() const{
+    return this->trigThreshold;
 }

@@ -44,6 +44,7 @@ else()
             ${PROJECT_SOURCES}
             dialogconnect.cpp dialogconnect.h dialogconnect.ui dialogprotocol.cpp dialogprotocol.h dialogprotocol.ui dialogsettingvispath.cpp dialogsettingvispath.h dialogsettingvispath.ui main.cpp mainwindow.cpp mainwindow.h mainwindow.ui
             digitizeroperation.h digitizeroperation.cpp
+            logger.h logger.cpp
         )
     endif()
 endif()
