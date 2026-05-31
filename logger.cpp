@@ -18,7 +18,7 @@ Logger::Logger(QObject *parent)
     , m_textEdit(nullptr)
 {
     // Опционально: открываем файл для записи лога
-    QString logFileName = QDateTime::currentDateTime().toString("yyyyMMdd") + "_log.txt";
+    QString logFileName = QDateTime::currentDateTime().toString("yyyyMMdd") + "DAQ.log";
     m_logFile.setFileName(logFileName);
     m_logFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text);
 }

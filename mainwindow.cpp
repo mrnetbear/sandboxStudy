@@ -17,6 +17,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->lineEditRecordLength->setValidator(new QIntValidator(this));
     ui->lineEditThreshold->setValidator(new QIntValidator(this));
 
+    ui->ButtonDisconnect->setEnabled(false);
+
     // Подключаем сигналы от digitizer
     connect(&digitizer, &DigitizerOperation::progressUpdated,
             [this](QString msg) {
@@ -77,40 +79,6 @@ bool MainWindow::loadConfig(){
 
 void MainWindow::on_ButtonConnect_clicked()
 {
-    // Создаем диалог подключения
-    //DialogConnect *dlgConnect = new DialogConnect(this);
-    //dlgConnect->setModal(true);
-
-    /*// Подключаем сигналы от digitizer
-    connect(&digitizer, &DigitizerOperation::progressUpdated,
-            [this](QString msg) {
-                qDebug() << msg;
-                // Можно добавить вывод в статус-бар или лог
-            });
-
-    connect(&digitizer, &DigitizerOperation::errorOccurred,
-            [this](QString errorMsg) {
-                QMessageBox::critical(this, "Digitizer Error", errorMsg);
-            });
-
-    connect(&digitizer, &DigitizerOperation::digitizerConnected,
-            [this]() {
-                QMessageBox::information(this, "Success", "Digitizer connected successfully!");
-                // Обновляем UI - например, делаем кнопки активными
-            });
-
-    connect(&digitizer, &DigitizerOperation::digitizerDisconnected,
-            [this]() {
-                qDebug() << "Digitizer disconnected";
-            });
-
-    connect(&digitizer, &DigitizerOperation::dataAcquired,
-            [this](int eventsCount) {
-                qDebug() << "Acquired" << eventsCount << "events";
-                // Обновляем счетчик на UI
-                ui->labelEventsCount->setText(QString("Events: %1").arg(digitizer.getTotalEventsCount()));
-            });*/
-
     ui->ButtonConnect->setEnabled(false);
     ui->ButtonDisconnect->setEnabled(true);
     // Открываем и настраиваем оцифровщик
@@ -127,15 +95,6 @@ void MainWindow::on_ButtonConnect_clicked()
         //delete dlgConnect;
         return;
     }
-
-    // Показываем диалог подключения
-    //dlgConnect->exec();
-    //delete dlgConnect;
-
-    // Запускаем acquisition
-    /*if (!digitizer.startAcquisition()) {
-        return;
-    }*/
 
     // Обновляем UI - показываем статус
     ui->ButtonConnect->setEnabled(false);

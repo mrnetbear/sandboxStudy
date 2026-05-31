@@ -132,28 +132,28 @@ bool DigitizerOperation::configureDigitizer()
             qDebug() << "Warning: Reset failed:" << errorCodeToString(ret);
         }
 
-        ret = CAEN_DGTZ_SetRecordLength(handle[b], 4096);  // Длина каждого окна набора в сэмплах
+        ret = CAEN_DGTZ_SetRecordLength(handle[b], recLength);  // Длина каждого окна набора в сэмплах
         if(ret != CAEN_DGTZ_Success) {
             lastErrorMessage = QString("Failed to set record length: %1").arg(errorCodeToString(ret));
             emit errorOccurred(lastErrorMessage);
             return false;
         }
 
-        ret = CAEN_DGTZ_SetChannelEnableMask(handle[b], 0x1);  // Включаем канал 0
+        ret = CAEN_DGTZ_SetChannelEnableMask(handle[b], chMask);  // Включаем канал 0
         if(ret != CAEN_DGTZ_Success) {
             lastErrorMessage = QString("Failed to set channel enable mask: %1").arg(errorCodeToString(ret));
             emit errorOccurred(lastErrorMessage);
             return false;
         }
 
-        ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle[b], 0, 32768);  // Устанавливаем порог триггера
+        ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle[b], 0, trigThreshold);  // Устанавливаем порог триггера
         if(ret != CAEN_DGTZ_Success) {
             lastErrorMessage = QString("Failed to set trigger threshold: %1").arg(errorCodeToString(ret));
             emit errorOccurred(lastErrorMessage);
             return false;
         }
 
-        ret = CAEN_DGTZ_SetChannelSelfTrigger(handle[b], CAEN_DGTZ_TRGMODE_ACQ_ONLY, 0x1);
+        ret = CAEN_DGTZ_SetChannelSelfTrigger(handle[b], CAEN_DGTZ_TRGMODE_ACQ_ONLY, chMask);
         if(ret != CAEN_DGTZ_Success) {
             lastErrorMessage = QString("Failed to set self trigger: %1").arg(errorCodeToString(ret));
             emit errorOccurred(lastErrorMessage);
