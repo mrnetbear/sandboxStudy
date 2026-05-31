@@ -56,8 +56,8 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    QString pathToVis = "/home/mrnetlex/qt-projects/sandboxStudy/vis/build/rootVis";
-    QString pathToConfig = "//home/mrnetlex/qt-projects/sandboxStudy/config";
+    QString pathToVis = "/home/mrnetlex/Documents/Progs/C++/qt-projects/sandboxStudy/altvis/build/rootVis";
+    QString pathToConfig = "/home/mrnetlex/Documents/Progs/C++/qt-projects/sandboxStudy/config";
     DigitizerOperation digitizer;
 };
 #endif // MAINWINDOW_H
