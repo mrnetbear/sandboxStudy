@@ -8,6 +8,7 @@ void simulateDataAcquisition(RootWidget& rootWidget) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> energyDist(0, 4000);
+    std::uniform_real_distribution<> expDist(0, 500);
     std::normal_distribution<> waveformDist(500, 100);
     
     int eventCount = 0;
@@ -17,7 +18,7 @@ void simulateDataAcquisition(RootWidget& rootWidget) {
         std::vector<double> waveform(1024);
         for (int i = 0; i < 1024; ++i) {
             double t = i * 2 * M_PI / 256;
-            waveform[i] = 500 + 400 * sin(t) + waveformDist(gen) * 0.1;
+            waveform[i] = 500 + 400 * sin(t)*exp(-t * expDist(gen)) + waveformDist(gen) * 0.1;
         }
         
         // Отрисовываем
@@ -33,6 +34,7 @@ void simulateDataAcquisition(RootWidget& rootWidget) {
         // Добавляем событие в спектр
         double timestamp = eventCount * 0.01;  // 10 мс между событиями
         rootWidget.addEnergyEvent(energy, timestamp);
+        std::cout << energy << "; " << timestamp << std::endl;
         
         // Обновляем спектр каждый 10-й раз для производительности
         if (eventCount % 10 == 0) {

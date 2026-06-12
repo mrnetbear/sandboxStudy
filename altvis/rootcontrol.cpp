@@ -17,9 +17,9 @@ RootWidget::RootWidget()
     , rateGraph(nullptr)
     , multiGraph(nullptr)
     , gateStart(0)
-    , gateEnd(0)
-    , gateStartLine(-1)
-    , gateEndLine(-1)
+    , gateEnd(200)
+    , gateStartLine(0)
+    , gateEndLine(200)
     , eventsInCurrentSecond(0)
 {
     // Инициализируем ROOT
@@ -38,7 +38,7 @@ RootWidget::RootWidget()
     setupCanvases();
     
     // Инициализируем гистограммы
-    energyHist = new TH1F("energySpectrum", "Energy Spectrum;Energy (a.u.);Counts", 1024, 0, 4096);
+    energyHist = new TH1F("energySpectrum", "Energy Spectrum;Energy (a.u.);Counts", 1024, 0, 3e5);
     energyHist->SetFillColor(kBlue-9);
     energyHist->SetLineColor(kBlue);
     energyHist->SetLineWidth(2);

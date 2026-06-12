@@ -68,7 +68,7 @@ bool DigitizerOperation::openDigitizer()
 
     for(int b = 0; b < MAXNB; b++) {
         // Открываем соединение с оцифровщиком через USB
-        for (int i = 0; i < 256; ++i){
+        for (int i = 0; /*ret != CAEN_DGTZ_Success*/ i < 1024; ++i){
             ret = CAEN_DGTZ_OpenDigitizer(CAEN_DGTZ_USB, i, 0, 0, &handle[b]);
             if(ret == CAEN_DGTZ_Success)
                 break;
