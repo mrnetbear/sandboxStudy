@@ -1,50 +1,29 @@
 cmake_minimum_required(VERSION 3.16)
-
-project(rootVis VERSION 0.1 LANGUAGES CXX)
+project(rootVis VERSION 0.2 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
 
-# Поиск ROOT
-find_package(ROOT REQUIRED COMPONENTS Core Hist Graf Gpad Tree)
+find_package(ROOT REQUIRED COMPONENTS Core Hist Graf Gpad Gui)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Network)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Network)
 
-if (ROOT_FOUND)
-    message(STATUS "ROOT found at: ${ROOT_DIR}")
-    message(STATUS "ROOT version: ${ROOT_VERSION}")
-else()
-    message(FATAL_ERROR "ROOT not found! Please install ROOT from https://root.cern/install/")
-endif()
-
-# Включаем файл ROOT
 include(${ROOT_USE_FILE})
 
-# Добавляем определения для GUI
-add_definitions(-DROOTGUI)
-
-set(PROJECT_SOURCES
+add_executable(rootVis
     main.cpp
     rootcontrol.cpp
     rootcontrol.h
-)
-
-add_executable(rootVis
-    ${PROJECT_SOURCES}
+    digitizerprotocol.h
+    waveformserver.cpp
+    waveformserver.h
 )
 
 target_link_libraries(rootVis PRIVATE
     ${ROOT_LIBRARIES}
-    ${ROOT_GUI_LIBRARIES}  # Добавляем GUI библиотеки
-    #Threads::Threads        # Для многопоточности
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Network
 )
 
-target_include_directories(rootVis PRIVATE
-    ${ROOT_INCLUDE_DIR}
-)
-
-# Устанавливаем свойства для macOS/Linux
-if(APPLE)
-    set_target_properties(rootVis PROPERTIES
-        MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
-    )
-endif()
+target_include_directories(rootVis PRIVATE ${ROOT_INCLUDE_DIRS})

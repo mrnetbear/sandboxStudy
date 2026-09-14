@@ -2,43 +2,25 @@
 #define DIGITIZEROPERATION_H
 
 #include "CAENDigitizer.h"
-#include <iostream>
-#include <QDebug>
-#include <QThread>
-#include <QVector>
 
-#define MAXNB 1  // Количество подключенных плат
+#include <QObject>
+#include <QThread>
+#include <QString>
+#include <QTcpSocket>
+#include <QHostAddress>
+#include <atomic>
+#include <cstdint>
+
+#define MAXNB 1
 
 class DigitizerOperation : public QObject
 {
     Q_OBJECT
 
-private:
-    CAEN_DGTZ_ErrorCode ret;
-    CAEN_DGTZ_BoardInfo_t BoardInfo;
-    CAEN_DGTZ_EventInfo_t eventInfo;
-    CAEN_DGTZ_UINT16_EVENT_t *Evt = NULL;
-
-    uint32_t recLength = 4096;
-    uint32_t chMask = 0x1;
-    uint32_t trigThreshold = 32768;
-
-
-    char *buffer = NULL;
-    int handle[MAXNB];
-    int count[MAXNB];
-    char *evtptr = NULL;
-    uint32_t size, bsize;
-    uint32_t numEvents;
-    bool isAcquiring;
-    QThread* acquisitionThread;
-
-
 public:
     explicit DigitizerOperation(QObject *parent = nullptr);
-    ~DigitizerOperation();
+    ~DigitizerOperation() override;
 
-    // Основные методы для работы с оцифровщиком
     bool openDigitizer();
     bool configureDigitizer();
     bool startAcquisition();
@@ -46,18 +28,19 @@ public:
     bool closeDigitizer();
     bool sendSoftwareTrigger();
     bool readData();
-    bool isOpened() const;
-    bool isConfigured() const;
+
     bool setRecLength(uint32_t newRecLength);
     bool setChMask(uint32_t newChMask);
     bool setTrigThreshold(uint32_t newTrigThreshold);
+    void setVisualizationEndpoint(const QString &host, quint16 port);
 
-    // Геттеры
-    CAEN_DGTZ_ErrorCode getLastError();
-    QString getLastErrorMessage();
-    CAEN_DGTZ_BoardInfo_t getBoardInfo();
+    bool isOpened() const;
+    bool isConfigured() const;
+    bool getAcquiringStatus() const;
+    CAEN_DGTZ_ErrorCode getLastError() const;
+    QString getLastErrorMessage() const;
+    CAEN_DGTZ_BoardInfo_t getBoardInfo() const;
     int getTotalEventsCount() const;
-    bool getAcquiringStatus();
     uint32_t getRecLength() const;
     uint32_t getChMask() const;
     uint32_t getTrigThreshold() const;
@@ -68,18 +51,44 @@ signals:
     void dataAcquired(int eventsCount);
     void digitizerConnected();
     void digitizerDisconnected();
-    void errorOccurred(QString errorMessage);
-    void progressUpdated(QString message);
-
-private slots:
-    void acquisitionLoop();
+    void errorOccurred(const QString &errorMessage);
+    void progressUpdated(const QString &message);
+    void visualizationConnected();
+    void visualizationDisconnected();
+    void waveformSent(quint64 eventId);
 
 private:
-    bool isOpened_flag;
-    bool isConfigured_flag;
+    void acquisitionLoop();
+    bool openVisualizationConnection();
+    void closeVisualizationConnection();
+    bool sendWaveform(quint16 board, quint16 channel,
+                      quint64 timestamp, const CAEN_DGTZ_UINT16_EVENT_t &event);
+    QString errorCodeToString(CAEN_DGTZ_ErrorCode code) const;
+
+    CAEN_DGTZ_ErrorCode ret = CAEN_DGTZ_Success;
+    CAEN_DGTZ_BoardInfo_t boardInfo{};
+    CAEN_DGTZ_EventInfo_t eventInfo{};
+    CAEN_DGTZ_UINT16_EVENT_t *decodedEvent = nullptr;
+
+    uint32_t recLength = 5000;
+    uint32_t chMask = 0x1;
+    uint32_t trigThreshold = 32768;
+
+    char *buffer = nullptr;
+    int handle[MAXNB]{};
+    int count[MAXNB]{};
+    uint32_t readoutBufferSize = 0;
+
+    std::atomic_bool isAcquiring{false};
+    bool isOpenedFlag = false;
+    bool isConfiguredFlag = false;
+    QThread *acquisitionThread = nullptr;
     QString lastErrorMessage;
 
-    QString errorCodeToString(CAEN_DGTZ_ErrorCode code);
+    QString visualizationHost = QStringLiteral("127.0.0.1");
+    quint16 visualizationPort = 45454;
+    QTcpSocket *visualizationSocket = nullptr;
+    quint64 nextEventId = 0;
 };
 
 #endif // DIGITIZEROPERATION_H

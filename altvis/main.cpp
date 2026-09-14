@@ -1,77 +1,44 @@
 #include "rootcontrol.h"
-#include <thread>
-#include <random>
-#include <chrono>
+#include "waveformserver.h"
 
-// Функция для имитации получения данных с оцифровщика
-void simulateDataAcquisition(RootWidget& rootWidget) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> energyDist(0, 4000);
-    std::uniform_real_distribution<> expDist(0, 500);
-    std::normal_distribution<> waveformDist(500, 100);
-    
-    int eventCount = 0;
-    
-    while (eventCount < 10000) {  // Симулируем 1000 событий
-        // Генерируем (синусоида с шумом)
-        std::vector<double> waveform(1024);
-        for (int i = 0; i < 1024; ++i) {
-            double t = i * 2 * M_PI / 256;
-            waveform[i] = 500 + 400 * sin(t)*exp(-t * expDist(gen)) + waveformDist(gen) * 0.1;
-        }
-        
-        // Отрисовываем
-        rootWidget.drawWaveform(waveform, "Real-time Waveform");
-        
-        // Вычисляем энергию (интеграл в области гейта)
-        auto gateRange = rootWidget.getGateRange();
-        double energy = 0;
-        for (int i = gateRange.first; i < gateRange.second && i < 1024; ++i) {
-            energy += waveform[i];
-        }
-        
-        // Добавляем событие в спектр
-        double timestamp = eventCount * 0.01;  // 10 мс между событиями
-        rootWidget.addEnergyEvent(energy, timestamp);
-        std::cout << energy << "; " << timestamp << std::endl;
-        
-        // Обновляем спектр каждый 10-й раз для производительности
-        if (eventCount % 10 == 0) {
-            rootWidget.drawEnergySpectrum();
-            rootWidget.drawRateTimePlot();
-        }
-        
-        // Обрабатываем события ROOT
-        rootWidget.processEvents();
-        
-        // Имитируем задержку между событиями
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        
-        eventCount++;
-    }
-    
-    std::cout << "Data acquisition simulation completed" << std::endl;
-}
+#include <QCoreApplication>
+#include <QTimer>
 
-int main(int argc, char *argv[]) {
-    std::cout << "Starting RootVis application..." << std::endl;
-    
-    // Создаем главное окно
+#include <iostream>
+#include <vector>
+
+int main(int argc, char *argv[])
+{
+    QCoreApplication qtApplication(argc, argv);
+
     RootWidget rootWidget;
-    
-    // Устанавливаем гейт для (примерно в середине)
     rootWidget.setGateRange(400, 600);
-    
-    // Запускаем симуляцию сбора данных в отдельном потоке
-    std::thread acquisitionThread(simulateDataAcquisition, std::ref(rootWidget));
-    
-    // Ждем завершения
-    acquisitionThread.join();
-    
-    // Даем пользователю время посмотреть результаты
-    std::cout << "Press Enter to exit..." << std::endl;
-    std::cin.get();
-    
-    return 0;
+
+    WaveformServer server;
+    if (!server.listen()) {
+        std::cerr << "Cannot listen on 127.0.0.1:45454" << std::endl;
+        return 1;
+    }
+
+    std::cout << "ROOT visualizer listens on 127.0.0.1:45454" << std::endl;
+
+    QTimer updateTimer;
+    QObject::connect(&updateTimer, &QTimer::timeout, [&] {
+        DigitizerProtocol::Event event;
+        bool received = false;
+        while (server.takeNextEvent(event)) {
+            std::vector<double> samples;
+            samples.reserve(static_cast<size_t>(event.samples.size()));
+            for (quint16 sample : event.samples)
+                samples.push_back(static_cast<double>(sample));
+            rootWidget.processWaveform(samples, event.timestamp, event.board, event.channel);
+            received = true;
+        }
+        if (received)
+            rootWidget.refreshDisplays();
+        rootWidget.processEvents();
+    });
+    updateTimer.start(100);
+
+    return qtApplication.exec();
 }

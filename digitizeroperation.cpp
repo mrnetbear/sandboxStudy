@@ -1,452 +1,405 @@
 #include "digitizeroperation.h"
+#include "digitizerprotocol.h"
+
+#include <QDebug>
+#include <QElapsedTimer>
+#include <QThread>
+#include <cstring>
 
 DigitizerOperation::DigitizerOperation(QObject *parent)
     : QObject(parent)
-    , isAcquiring(false)
-    , isOpened_flag(false)
-    , isConfigured_flag(false)
-    , acquisitionThread(nullptr)
 {
-    memset(handle, 0, sizeof(handle));
-    memset(count, 0, sizeof(count));
-    buffer = nullptr;
-    Evt = nullptr;
-    evtptr = nullptr;
 }
 
 DigitizerOperation::~DigitizerOperation()
 {
-    if (isAcquiring) {
-        stopAcquisition();
-    }
-    if (isOpened_flag) {
-        closeDigitizer();
-    }
-    if (buffer) {
-        CAEN_DGTZ_FreeReadoutBuffer(&buffer);
-    }
-    qDebug() << "Digitizer operation finished";
+    stopAcquisition();
+    closeDigitizer();
 }
 
-QString DigitizerOperation::errorCodeToString(CAEN_DGTZ_ErrorCode code)
+QString DigitizerOperation::errorCodeToString(CAEN_DGTZ_ErrorCode code) const
 {
-    switch(code) {
-    case CAEN_DGTZ_Success:
-        return "Success";
-    case CAEN_DGTZ_Timeout:
-        return "Timeout";
-    case CAEN_DGTZ_EventNotFound:
-        return "Device not found";
-    case CAEN_DGTZ_InvalidHandle:
-        return "Invalid handle";
-    case CAEN_DGTZ_InvalidParam:
-        return "Invalid parameter";
-    case CAEN_DGTZ_CalibrationError:
-        return "Communication error";
-    case CAEN_DGTZ_UnsupportedTrace:
-        return "Unsupported feature";
-    case CAEN_DGTZ_MaxDevicesError:
-        return "Memory error";
-    default:
-        return QString("Unknown error code: %1").arg(code);
+    switch (code) {
+    case CAEN_DGTZ_Success: return QStringLiteral("Success");
+    case CAEN_DGTZ_Timeout: return QStringLiteral("Timeout");
+    case CAEN_DGTZ_EventNotFound: return QStringLiteral("Event not found");
+    case CAEN_DGTZ_InvalidHandle: return QStringLiteral("Invalid handle");
+    case CAEN_DGTZ_InvalidParam: return QStringLiteral("Invalid parameter");
+    case CAEN_DGTZ_CalibrationError: return QStringLiteral("Calibration/communication error");
+    case CAEN_DGTZ_UnsupportedTrace: return QStringLiteral("Unsupported trace");
+    default: return QStringLiteral("CAEN error %1").arg(static_cast<int>(code));
     }
 }
 
-CAEN_DGTZ_ErrorCode DigitizerOperation::getLastError()
+CAEN_DGTZ_ErrorCode DigitizerOperation::getLastError() const { return ret; }
+QString DigitizerOperation::getLastErrorMessage() const { return lastErrorMessage; }
+CAEN_DGTZ_BoardInfo_t DigitizerOperation::getBoardInfo() const { return boardInfo; }
+bool DigitizerOperation::isOpened() const { return isOpenedFlag; }
+bool DigitizerOperation::isConfigured() const { return isConfiguredFlag; }
+bool DigitizerOperation::getAcquiringStatus() const { return isAcquiring.load(); }
+uint32_t DigitizerOperation::getRecLength() const { return recLength; }
+uint32_t DigitizerOperation::getChMask() const { return chMask; }
+uint32_t DigitizerOperation::getTrigThreshold() const { return trigThreshold; }
+
+int DigitizerOperation::getTotalEventsCount() const
 {
-    return ret;
+    int total = 0;
+    for (int boardCount : count)
+        total += boardCount;
+    return total;
 }
 
-QString DigitizerOperation::getLastErrorMessage()
+bool DigitizerOperation::setRecLength(uint32_t value)
 {
-    return lastErrorMessage;
+    if (value == 0) {
+        emit errorOccurred(QStringLiteral("Record length must be positive"));
+        return false;
+    }
+    if (isConfiguredFlag || isAcquiring.load()) {
+        emit errorOccurred(QStringLiteral("Stop acquisition and reconnect before changing record length"));
+        return false;
+    }
+    recLength = value;
+    return true;
+}
+
+bool DigitizerOperation::setChMask(uint32_t value)
+{
+    if (value == 0) {
+        emit errorOccurred(QStringLiteral("At least one channel must be enabled"));
+        return false;
+    }
+    if (isConfiguredFlag || isAcquiring.load()) {
+        emit errorOccurred(QStringLiteral("Stop acquisition and reconnect before changing channel mask"));
+        return false;
+    }
+    chMask = value;
+    return true;
+}
+
+bool DigitizerOperation::setTrigThreshold(uint32_t value)
+{
+    if (value > 65535U) {
+        emit errorOccurred(QStringLiteral("Trigger threshold must be in [0, 65535]"));
+        return false;
+    }
+    if (isConfiguredFlag || isAcquiring.load()) {
+        emit errorOccurred(QStringLiteral("Stop acquisition and reconnect before changing trigger threshold"));
+        return false;
+    }
+    trigThreshold = value;
+    return true;
+}
+
+void DigitizerOperation::setVisualizationEndpoint(const QString &host, quint16 port)
+{
+    visualizationHost = host;
+    visualizationPort = port;
 }
 
 bool DigitizerOperation::openDigitizer()
 {
-    emit progressUpdated("Opening digitizer...");
+    if (isOpenedFlag)
+        return true;
 
-    for(int b = 0; b < MAXNB; b++) {
-        // Открываем соединение с оцифровщиком через USB
-        for (int i = 0; /*ret != CAEN_DGTZ_Success*/ i < 1024; ++i){
-            ret = CAEN_DGTZ_OpenDigitizer(CAEN_DGTZ_USB, i, 0, 0, &handle[b]);
-            if(ret == CAEN_DGTZ_Success)
-                break;
-        }
-
-        if(ret != CAEN_DGTZ_Success) {
-            lastErrorMessage = QString("Can't open digitizer on board %1: %2")
-                                   .arg(b)
-                                   .arg(errorCodeToString(ret));
+    emit progressUpdated(QStringLiteral("Opening digitizer..."));
+    for (int board = 0; board < MAXNB; ++board) {
+        ret = CAEN_DGTZ_OpenDigitizer(CAEN_DGTZ_USB, board, 0, 0, &handle[board]);
+        if (ret != CAEN_DGTZ_Success) {
+            lastErrorMessage = QStringLiteral("Cannot open CAEN board %1: %2")
+                                   .arg(board).arg(errorCodeToString(ret));
             emit errorOccurred(lastErrorMessage);
-            qDebug() << lastErrorMessage;
+            closeDigitizer();
             return false;
         }
-
-        qDebug() << "Digitizer opened successfully on board" << b;
-        emit progressUpdated(QString("Digitizer opened on board %1").arg(b));
     }
 
-    isOpened_flag = true;
+    isOpenedFlag = true;
     emit digitizerConnected();
     return true;
 }
 
 bool DigitizerOperation::configureDigitizer()
 {
-    if (!isOpened_flag) {
-        lastErrorMessage = "Digitizer not opened. Call openDigitizer() first.";
-        emit errorOccurred(lastErrorMessage);
+    if (!isOpenedFlag) {
+        emit errorOccurred(QStringLiteral("Digitizer is not open"));
         return false;
     }
 
-    emit progressUpdated("Configuring digitizer...");
-
-    for(int b = 0; b < MAXNB; b++) {
-        // Получаем информацию о плате
-        ret = CAEN_DGTZ_GetInfo(handle[b], &BoardInfo);
-        if(ret != CAEN_DGTZ_Success) {
-            lastErrorMessage = QString("Failed to get board info: %1").arg(errorCodeToString(ret));
-            emit errorOccurred(lastErrorMessage);
+    for (int board = 0; board < MAXNB; ++board) {
+        ret = CAEN_DGTZ_GetInfo(handle[board], &boardInfo);
+        if (ret != CAEN_DGTZ_Success) {
+            emit errorOccurred(QStringLiteral("CAEN_DGTZ_GetInfo failed: %1").arg(errorCodeToString(ret)));
             return false;
         }
 
-        qDebug() << "Connected to CAEN Digitizer Model" << BoardInfo.ModelName;
-        qDebug() << "ROC FPGA Release:" << BoardInfo.ROC_FirmwareRel;
-        qDebug() << "AMC FPGA Release:" << BoardInfo.AMC_FirmwareRel;
-
-        emit progressUpdated(QString("Connected to %1").arg(BoardInfo.ModelName));
-
-        // Проверяем версию прошивки (DPP прошивки не поддерживаются)
-        int MajorNumber;
-        sscanf(BoardInfo.AMC_FirmwareRel, "%d", &MajorNumber);
-        if (MajorNumber >= 128) {
-            lastErrorMessage = "This digitizer has a DPP firmware which is not supported!";
-            emit errorOccurred(lastErrorMessage);
+        ret = CAEN_DGTZ_Reset(handle[board]);
+        if (ret != CAEN_DGTZ_Success) {
+            emit errorOccurred(QStringLiteral("CAEN_DGTZ_Reset failed: %1").arg(errorCodeToString(ret)));
             return false;
         }
 
-        // Конфигурация оцифровщика
-        ret = CAEN_DGTZ_Reset(handle[b]);
-        if(ret != CAEN_DGTZ_Success) {
-            qDebug() << "Warning: Reset failed:" << errorCodeToString(ret);
-        }
-
-        ret = CAEN_DGTZ_SetRecordLength(handle[b], recLength);  // Длина каждого окна набора в сэмплах
-        if(ret != CAEN_DGTZ_Success) {
-            lastErrorMessage = QString("Failed to set record length: %1").arg(errorCodeToString(ret));
-            emit errorOccurred(lastErrorMessage);
+        ret = CAEN_DGTZ_SetRecordLength(handle[board], recLength);
+        if (ret != CAEN_DGTZ_Success) {
+            emit errorOccurred(QStringLiteral("Cannot set record length: %1").arg(errorCodeToString(ret)));
             return false;
         }
 
-        ret = CAEN_DGTZ_SetChannelEnableMask(handle[b], chMask);  // Включаем канал 0
-        if(ret != CAEN_DGTZ_Success) {
-            lastErrorMessage = QString("Failed to set channel enable mask: %1").arg(errorCodeToString(ret));
-            emit errorOccurred(lastErrorMessage);
+        ret = CAEN_DGTZ_SetChannelEnableMask(handle[board], chMask);
+        if (ret != CAEN_DGTZ_Success) {
+            emit errorOccurred(QStringLiteral("Cannot set channel mask: %1").arg(errorCodeToString(ret)));
             return false;
         }
 
-        ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle[b], 0, trigThreshold);  // Устанавливаем порог триггера
-        if(ret != CAEN_DGTZ_Success) {
-            lastErrorMessage = QString("Failed to set trigger threshold: %1").arg(errorCodeToString(ret));
-            emit errorOccurred(lastErrorMessage);
-            return false;
+        for (unsigned channel = 0; channel < 32; ++channel) {
+            if ((chMask & (1U << channel)) == 0)
+                continue;
+            ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle[board], channel, trigThreshold);
+            if (ret != CAEN_DGTZ_Success) {
+                emit errorOccurred(QStringLiteral("Cannot set threshold for channel %1: %2")
+                                       .arg(channel).arg(errorCodeToString(ret)));
+                return false;
+            }
         }
 
-        ret = CAEN_DGTZ_SetChannelSelfTrigger(handle[b], CAEN_DGTZ_TRGMODE_ACQ_ONLY, chMask);
-        if(ret != CAEN_DGTZ_Success) {
-            lastErrorMessage = QString("Failed to set self trigger: %1").arg(errorCodeToString(ret));
-            emit errorOccurred(lastErrorMessage);
+        ret = CAEN_DGTZ_SetChannelSelfTrigger(handle[board], CAEN_DGTZ_TRGMODE_ACQ_ONLY, chMask);
+        if (ret != CAEN_DGTZ_Success) {
+            emit errorOccurred(QStringLiteral("Cannot enable self trigger: %1").arg(errorCodeToString(ret)));
             return false;
         }
-
-        ret = CAEN_DGTZ_SetSWTriggerMode(handle[b], CAEN_DGTZ_TRGMODE_ACQ_ONLY);
-        if(ret != CAEN_DGTZ_Success) {
-            lastErrorMessage = QString("Failed to set SW trigger mode: %1").arg(errorCodeToString(ret));
-            emit errorOccurred(lastErrorMessage);
+        /********************************************/
+        ret = CAEN_DGTZ_SetSWTriggerMode(handle[board], CAEN_DGTZ_TRGMODE_ACQ_ONLY);
+        if (ret != CAEN_DGTZ_Success) {
+            emit errorOccurred(
+                QStringLiteral("Cannot configure software trigger: %1")
+                    .arg(errorCodeToString(ret)));
             return false;
         }
+        /********************************************/
 
-        ret = CAEN_DGTZ_SetMaxNumEventsBLT(handle[b], 3);
-        if(ret != CAEN_DGTZ_Success) {
-            lastErrorMessage = QString("Failed to set max events: %1").arg(errorCodeToString(ret));
-            emit errorOccurred(lastErrorMessage);
+        ret = CAEN_DGTZ_SetAcquisitionMode(handle[board], CAEN_DGTZ_SW_CONTROLLED);
+        if (ret != CAEN_DGTZ_Success) {
+            emit errorOccurred(QStringLiteral("Cannot set acquisition mode: %1").arg(errorCodeToString(ret)));
             return false;
         }
-
-        ret = CAEN_DGTZ_SetAcquisitionMode(handle[b], CAEN_DGTZ_SW_CONTROLLED);
-        if(ret != CAEN_DGTZ_Success) {
-            lastErrorMessage = QString("Failed to set acquisition mode: %1").arg(errorCodeToString(ret));
-            emit errorOccurred(lastErrorMessage);
-            return false;
-        }
-
-        qDebug() << "Digitizer configured successfully for board" << b;
     }
 
-    // Выделяем буфер для чтения данных
-    ret = CAEN_DGTZ_MallocReadoutBuffer(handle[0], &buffer, &size);
-    if(ret != CAEN_DGTZ_Success) {
-        lastErrorMessage = QString("Failed to allocate readout buffer: %1").arg(errorCodeToString(ret));
-        emit errorOccurred(lastErrorMessage);
+    ret = CAEN_DGTZ_MallocReadoutBuffer(handle[0], &buffer, &readoutBufferSize);
+    if (ret != CAEN_DGTZ_Success) {
+        emit errorOccurred(QStringLiteral("Cannot allocate readout buffer: %1").arg(errorCodeToString(ret)));
         return false;
     }
 
-    isConfigured_flag = true;
-    emit progressUpdated("Digitizer configured successfully");
+    isConfiguredFlag = true;
+    emit progressUpdated(QStringLiteral("Digitizer configured"));
     return true;
+}
+
+bool DigitizerOperation::openVisualizationConnection()
+{
+    if (visualizationSocket && visualizationSocket->state() == QAbstractSocket::ConnectedState)
+        return true;
+
+    closeVisualizationConnection();
+    visualizationSocket = new QTcpSocket;
+    visualizationSocket->connectToHost(visualizationHost, visualizationPort);
+    if (!visualizationSocket->waitForConnected(1000)) {
+        delete visualizationSocket;
+        visualizationSocket = nullptr;
+        return false;
+    }
+
+    emit visualizationConnected();
+    emit progressUpdated(QStringLiteral("Connected to visualizer at %1:%2")
+                             .arg(visualizationHost).arg(visualizationPort));
+    return true;
+}
+
+void DigitizerOperation::closeVisualizationConnection()
+{
+    if (!visualizationSocket)
+        return;
+    visualizationSocket->disconnectFromHost();
+    visualizationSocket->waitForDisconnected(100);
+    delete visualizationSocket;
+    visualizationSocket = nullptr;
+    emit visualizationDisconnected();
 }
 
 bool DigitizerOperation::startAcquisition()
 {
-    if (!isConfigured_flag) {
-        lastErrorMessage = "Digitizer not configured. Call configureDigitizer() first.";
-        emit errorOccurred(lastErrorMessage);
+    if (!isConfiguredFlag || isAcquiring.load())
         return false;
-    }
 
-    if (isAcquiring) {
-        emit errorOccurred("Acquisition already in progress");
-        return false;
-    }
-
-    emit progressUpdated("Starting acquisition...");
-
-    // Запускаем acquisition для всех плат
-    for(int b = 0; b < MAXNB; b++) {
-        ret = CAEN_DGTZ_SWStartAcquisition(handle[b]);
-        if(ret != CAEN_DGTZ_Success) {
-            lastErrorMessage = QString("Failed to start acquisition on board %1: %2")
-                                   .arg(b)
-                                   .arg(errorCodeToString(ret));
-            emit errorOccurred(lastErrorMessage);
+    for (int board = 0; board < MAXNB; ++board) {
+        ret = CAEN_DGTZ_SWStartAcquisition(handle[board]);
+        if (ret != CAEN_DGTZ_Success) {
+            emit errorOccurred(QStringLiteral("Cannot start acquisition: %1").arg(errorCodeToString(ret)));
             return false;
         }
     }
 
-    isAcquiring = true;
-
-    // Запускаем поток для сбора данных
-    acquisitionThread = QThread::create([this]() { acquisitionLoop(); });
-    connect(acquisitionThread, &QThread::finished, acquisitionThread, &QThread::deleteLater);
+    isAcquiring.store(true);
+    acquisitionThread = QThread::create([this] { acquisitionLoop(); });
+    connect(acquisitionThread, &QThread::finished, acquisitionThread, &QObject::deleteLater);
     acquisitionThread->start();
 
     emit acquisitionStarted();
-    emit progressUpdated("Acquisition started");
+    return true;
+}
+
+bool DigitizerOperation::sendWaveform(quint16 board, quint16 channel,
+                                      quint64 timestamp,
+                                      const CAEN_DGTZ_UINT16_EVENT_t &event)
+{
+    if (!event.DataChannel[channel] || event.ChSize[channel] == 0)
+        return true;
+
+    if (!openVisualizationConnection())
+        return false; // acquisition must continue even if GUI is absent
+
+    DigitizerProtocol::Event packetEvent;
+    packetEvent.eventId = ++nextEventId;
+    packetEvent.timestamp = timestamp;
+    packetEvent.board = board;
+    packetEvent.channel = channel;
+    packetEvent.adcBits = 16;
+    packetEvent.samples.resize(static_cast<qsizetype>(event.ChSize[channel]));
+
+    for (uint32_t i = 0; i < event.ChSize[channel]; ++i)
+        packetEvent.samples[static_cast<qsizetype>(i)] = event.DataChannel[channel][i];
+
+    const QByteArray packet = DigitizerProtocol::makePacket(packetEvent);
+    if (visualizationSocket->write(packet) != packet.size() ||
+        !visualizationSocket->waitForBytesWritten(100)) {
+        closeVisualizationConnection();
+        return false;
+    }
+
+    emit waveformSent(packetEvent.eventId);
     return true;
 }
 
 void DigitizerOperation::acquisitionLoop()
 {
-    memset(count, 0, sizeof(count));
+    std::memset(count, 0, sizeof(count));
 
-    while (isAcquiring) {
-        for(int b = 0; b < MAXNB; b++) {
-            // Отправляем программный триггер
-            ret = CAEN_DGTZ_SendSWtrigger(handle[b]);
-            if(ret != CAEN_DGTZ_Success && ret != CAEN_DGTZ_Timeout) {
-                emit errorOccurred(QString("Failed to send SW trigger: %1").arg(errorCodeToString(ret)));
+    while (isAcquiring.load()) {
+        for (int board = 0; board < MAXNB; ++board) {
+
+            /**********************************************/
+            ret = CAEN_DGTZ_SendSWtrigger(handle[board]);
+            if (ret != CAEN_DGTZ_Success && ret != CAEN_DGTZ_Timeout) {
+                emit errorOccurred(
+                    QStringLiteral("SendSWtrigger failed for board %1: %2")
+                        .arg(board)
+                        .arg(errorCodeToString(ret)));
+                continue;
+            }
+            /**********************************************/
+
+            uint32_t blockSize = 0;
+            ret = CAEN_DGTZ_ReadData(handle[board], CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
+                                     buffer, &blockSize);
+
+            if (ret != CAEN_DGTZ_Success) {
+                if (ret != CAEN_DGTZ_Timeout)
+                    emit errorOccurred(QStringLiteral("ReadData failed: %1").arg(errorCodeToString(ret)));
                 continue;
             }
 
-            // Читаем данные из буфера
-            ret = CAEN_DGTZ_ReadData(handle[b], CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, buffer, &bsize);
-            if(ret != CAEN_DGTZ_Success && ret != CAEN_DGTZ_Timeout) {
-                emit errorOccurred(QString("Failed to read data: %1").arg(errorCodeToString(ret)));
+            uint32_t eventCount = 0;
+            ret = CAEN_DGTZ_GetNumEvents(handle[board], buffer, blockSize, &eventCount);
+            if (ret != CAEN_DGTZ_Success) {
+                emit errorOccurred(QStringLiteral("GetNumEvents failed: %1").arg(errorCodeToString(ret)));
                 continue;
             }
 
-            // Получаем количество событий в буфере
-            ret = CAEN_DGTZ_GetNumEvents(handle[b], buffer, bsize, &numEvents);
-            if(ret != CAEN_DGTZ_Success) {
-                emit errorOccurred(QString("Failed to get number of events: %1").arg(errorCodeToString(ret)));
-                continue;
-            }
+            for (uint32_t eventIndex = 0; eventIndex < eventCount; ++eventIndex) {
+                char *eventPtr = nullptr;
+                ret = CAEN_DGTZ_GetEventInfo(handle[board], buffer, blockSize, eventIndex,
+                                             &eventInfo, &eventPtr);
+                if (ret != CAEN_DGTZ_Success)
+                    continue;
 
-            if(numEvents > 0) {
-                count[b] += numEvents;
+                decodedEvent = nullptr;
+                ret = CAEN_DGTZ_DecodeEvent(handle[board], eventPtr,
+                                            reinterpret_cast<void **>(&decodedEvent));
+                if (ret != CAEN_DGTZ_Success || !decodedEvent)
+                    continue;
 
-                // Обрабатываем каждое событие
-                for(uint32_t i = 0; i < numEvents; i++) {
-                    ret = CAEN_DGTZ_GetEventInfo(handle[b], buffer, bsize, i, &eventInfo, &evtptr);
-                    if(ret == CAEN_DGTZ_Success) {
-                        //void* tmpEvt = NULL;
-                        ret = CAEN_DGTZ_DecodeEvent(handle[b], evtptr, reinterpret_cast<void**>(&Evt));//&Evt);
-                        if(ret == CAEN_DGTZ_Success) {
-                            // TODO: Здесь можно добавить обработку данных события
-                            // Например, сохранить waveform или вычислить параметры
-
-                            // Освобождаем память события
-                            CAEN_DGTZ_FreeEvent(handle[b], reinterpret_cast<void**>(&Evt));//&Evt);
-                        }
-                    }
+                for (quint16 channel = 0; channel < 32; ++channel) {
+                    if ((chMask & (1U << channel)) == 0)
+                        continue;
+                    sendWaveform(static_cast<quint16>(board), channel,
+                                 static_cast<quint64>(eventInfo.TriggerTimeTag), *decodedEvent);
                 }
 
-                emit dataAcquired(numEvents);
-                emit progressUpdated(QString("Acquired %1 events from board %2 (Total: %3)")
-                                         .arg(numEvents).arg(b).arg(count[b]));
+                CAEN_DGTZ_FreeEvent(handle[board], reinterpret_cast<void **>(&decodedEvent));
+                decodedEvent = nullptr;
+                ++count[board];
             }
-        }
 
-        // Небольшая задержка, чтобы не перегружать CPU
-        QThread::msleep(100);
+            if (eventCount > 0)
+                emit dataAcquired(static_cast<int>(eventCount));
+        }
+        QThread::msleep(10);
     }
+
+    closeVisualizationConnection();
 }
 
 bool DigitizerOperation::stopAcquisition()
 {
-    if (!isAcquiring) {
+    if (!isAcquiring.exchange(false))
         return true;
-    }
 
-    emit progressUpdated("Stopping acquisition...");
+    if (acquisitionThread && acquisitionThread->isRunning())
+        acquisitionThread->wait(5000);
+    acquisitionThread = nullptr;
 
-    isAcquiring = false;
-
-    if (acquisitionThread && acquisitionThread->isRunning()) {
-        acquisitionThread->quit();
-        acquisitionThread->wait(5000); // Ждем завершения потока до 5 секунд
-    }
-
-    for(int b = 0; b < MAXNB; b++) {
-        if (handle[b]) {
-            ret = CAEN_DGTZ_SWStopAcquisition(handle[b]);
-            if(ret != CAEN_DGTZ_Success) {
-                qDebug() << "Warning: Failed to stop acquisition on board" << b << ":" << errorCodeToString(ret);
-            }
-        }
-    }
-
-    // Выводим статистику
-    for(int b = 0; b < MAXNB; b++) {
-        if(count[b] > 0) {
-            qDebug() << "Board" << b << ": Retrieved" << count[b] << "Events";
-            emit progressUpdated(QString("Board %1: Retrieved %2 events").arg(b).arg(count[b]));
-        }
-    }
+    for (int board = 0; board < MAXNB; ++board)
+        CAEN_DGTZ_SWStopAcquisition(handle[board]);
 
     emit acquisitionStopped();
-    emit progressUpdated("Acquisition stopped");
     return true;
 }
 
 bool DigitizerOperation::closeDigitizer()
 {
-    if (!isOpened_flag) {
+    if (!isOpenedFlag)
         return true;
-    }
 
-    if (isAcquiring) {
-        stopAcquisition();
-    }
-
-    emit progressUpdated("Closing digitizer...");
-
-    for(int b = 0; b < MAXNB; b++) {
-        if (handle[b]) {
-            ret = CAEN_DGTZ_CloseDigitizer(handle[b]);
-            if(ret != CAEN_DGTZ_Success) {
-                qDebug() << "Warning: Failed to close digitizer on board" << b << ":" << errorCodeToString(ret);
-            }
-            handle[b] = 0;
-        }
-    }
-
+    stopAcquisition();
     if (buffer) {
         CAEN_DGTZ_FreeReadoutBuffer(&buffer);
         buffer = nullptr;
     }
-
-    isOpened_flag = false;
-    isConfigured_flag = false;
-    emit digitizerDisconnected();
-    emit progressUpdated("Digitizer closed");
-    return true;
-}
-
-bool DigitizerOperation::sendSoftwareTrigger()
-{
-    if (!isAcquiring) {
-        emit errorOccurred("Acquisition not started. Call startAcquisition() first.");
-        return false;
-    }
-
-    for(int b = 0; b < MAXNB; b++) {
-        ret = CAEN_DGTZ_SendSWtrigger(handle[b]);
-        if(ret != CAEN_DGTZ_Success) {
-            lastErrorMessage = QString("Failed to send SW trigger: %1").arg(errorCodeToString(ret));
-            emit errorOccurred(lastErrorMessage);
-            return false;
+    for (int board = 0; board < MAXNB; ++board) {
+        if (handle[board] != 0) {
+            CAEN_DGTZ_CloseDigitizer(handle[board]);
+            handle[board] = 0;
         }
     }
-
+    isOpenedFlag = false;
+    isConfiguredFlag = false;
+    emit digitizerDisconnected();
     return true;
 }
 
 bool DigitizerOperation::readData()
 {
-    if (!isAcquiring) {
-        emit errorOccurred("Acquisition not started. Call startAcquisition() first.");
+    return isAcquiring.load();
+}
+
+bool DigitizerOperation::sendSoftwareTrigger()
+{
+    if (!isAcquiring.load())
         return false;
+    for (int board = 0; board < MAXNB; ++board) {
+        ret = CAEN_DGTZ_SendSWtrigger(handle[board]);
+        if (ret != CAEN_DGTZ_Success)
+            return false;
     }
-
-    // Данные читаются автоматически в acquisitionLoop
-    // Этот метод можно использовать для принудительного чтения
-
     return true;
-}
-
-bool DigitizerOperation::isOpened() const
-{
-    return isOpened_flag;
-}
-
-bool DigitizerOperation::isConfigured() const
-{
-    return isConfigured_flag;
-}
-
-CAEN_DGTZ_BoardInfo_t DigitizerOperation::getBoardInfo()
-{
-    return BoardInfo;
-}
-
-int DigitizerOperation::getTotalEventsCount() const
-{
-    int total = 0;
-    for(int b = 0; b < MAXNB; b++) {
-        total += count[b];
-    }
-    return total;
-}
-
-bool DigitizerOperation::getAcquiringStatus(){
-    return this->isAcquiring;
-}
-
-bool DigitizerOperation::setRecLength(uint32_t newRecLength){
-    this->recLength = newRecLength;
-    return true;
-}
-
-bool DigitizerOperation::setChMask(uint32_t newChMask){
-    this->chMask = newChMask;
-    return true;
-}
-
-bool DigitizerOperation::setTrigThreshold(uint32_t newTrigThreshold){
-    this->trigThreshold = newTrigThreshold;
-    return true;
-}
-
-uint32_t DigitizerOperation::getRecLength() const{
-    return this->recLength;
-}
-
-uint32_t DigitizerOperation::getChMask() const{
-    return this->chMask;
-}
-
-uint32_t DigitizerOperation::getTrigThreshold() const{
-    return this->trigThreshold;
 }

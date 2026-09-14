@@ -12,8 +12,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CAEN_DIGITIZER_INCLUDE_DIR "/usr/include/")
 set(CAEN_DIGITIZER_LIB "/usr/lib/libCAENDigitizer.so")
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -28,6 +28,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         dialogconnect.cpp dialogconnect.h dialogconnect.ui dialogprotocol.cpp dialogprotocol.h dialogprotocol.ui dialogsettingvispath.cpp dialogsettingvispath.h dialogsettingvispath.ui digitizeroperation.cpp digitizeroperation.h
         logger.cpp logger.h
+        digitizerprotocol.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET sandboxStudy APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -50,7 +51,11 @@ else()
     endif()
 endif()
 
-target_link_libraries(sandboxStudy PRIVATE Qt${QT_VERSION_MAJOR}::Widgets ${CAEN_DIGITIZER_LIB}) #CAENDigitizer)
+target_link_libraries(sandboxStudy PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+    ${CAEN_DIGITIZER_LIB}
+)
 
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

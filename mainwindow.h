@@ -54,10 +54,12 @@ private slots:
 
     void on_lineEditRecordLength_returnPressed();
 
+    void on_lineEditThreshold_returnPressed();
+
 private:
     Ui::MainWindow *ui;
-    QString pathToVis = "/home/mrnetlex/Documents/Progs/C++/qt-projects/sandboxStudy/altvis/build/rootVis";
-    QString pathToConfig = "/home/mrnetlex/Documents/Progs/C++/qt-projects/sandboxStudy/config";
+    QString pathToVis = "/home/mrnetlex/Documents/Progs/C++/qt-projects/sandboxStudyAlternative/altvis/build/rootVis";
+    QString pathToConfig = "/home/mrnetlex/Documents/Progs/C++/qt-projects/sandboxStudyAlternative/config";
     DigitizerOperation digitizer;
 };
 #endif // MAINWINDOW_H

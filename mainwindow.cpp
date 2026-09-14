@@ -12,6 +12,14 @@ MainWindow::MainWindow(QWidget *parent)
     Logger::instance()->info("Application Started");
     Logger::instance()->info(QString("Qt Version: %1").arg(qVersion()));
 
+    ui->lineEditRecordLength->setValidator(new QIntValidator(1, 1048576, this));
+    ui->lineEditThreshold->setValidator(new QIntValidator(0, 65535, this));
+
+    connect(ui->lineEditRecordLength, &QLineEdit::returnPressed,
+            this, &MainWindow::on_lineEditRecordLength_returnPressed);
+    connect(ui->lineEditThreshold, &QLineEdit::returnPressed,
+            this, &MainWindow::on_lineEditThreshold_returnPressed);
+
     ui->lineEditRecordLength->setText(QString::number(digitizer.getRecLength()));
     ui->lineEditThreshold->setText(QString::number(digitizer.getTrigThreshold()));
     ui->lineEditRecordLength->setValidator(new QIntValidator(this));
@@ -46,7 +54,7 @@ MainWindow::MainWindow(QWidget *parent)
             [this](int eventsCount) {
                 qDebug() << "Acquired" << eventsCount << "events";
                 // Обновляем счетчик на UI
-                ui->labelEventsCount->setText(QString("Events: %1").arg(digitizer.getTotalEventsCount()));
+                ui->labelEventsCount->setText(QString(" %1").arg(digitizer.getTotalEventsCount()));
             });
 }
 
@@ -119,7 +127,7 @@ void MainWindow::on_ButtonStartStop_clicked()
         digitizer.stopAcquisition();
         ui->ButtonStartStop->setText("Start");
         Logger::instance()->info("Data aquisition stopped.");
-    } else {
+    } else if (digitizer.startAcquisition()) {
         digitizer.startAcquisition();
         ui->ButtonStartStop->setText("Stop");
         Logger::instance()->info("Data aquisition started.");
@@ -188,6 +196,16 @@ void MainWindow::on_lineEditRecordLength_editingFinished()
 
 void MainWindow::on_lineEditRecordLength_returnPressed()
 {
-    digitizer.setRecLength(ui->lineEditRecordLength->text().toInt());
+    bool ok = false;
+    const uint32_t value = ui->lineEditRecordLength->text().toUInt(&ok);
+    if (!ok || !digitizer.setRecLength(value))
+        ui->lineEditRecordLength->setText(QString::number(digitizer.getRecLength()));
 }
 
+void MainWindow::on_lineEditThreshold_returnPressed()
+{
+    bool ok = false;
+    const uint32_t value = ui->lineEditThreshold->text().toUInt(&ok);
+    if (!ok || !digitizer.setTrigThreshold(value))
+        ui->lineEditThreshold->setText(QString::number(digitizer.getTrigThreshold()));
+}
