@@ -18,7 +18,7 @@ RootWidget::RootWidget()
 
     setupCanvases();
     energyHist = new TH1F("energySpectrum", "Energy spectrum;Baseline-subtracted integral;Counts",
-                          2048, 0.0, 1.0e6);
+                          2048, .0, 1.0e5);
     energyHist->SetLineColor(kBlue + 1);
     energyHist->SetFillColor(kAzure - 9);
     lastRateUpdate = std::chrono::steady_clock::now();
@@ -62,7 +62,7 @@ double RootWidget::calculateEnergy(const std::vector<double> &samples) const
 
     double energy = 0.0;
     for (int index = begin; index < end; ++index)
-        energy += samples[static_cast<size_t>(index)] - baseline;
+        energy += - (samples[static_cast<size_t>(index)] - baseline);
     return energy;
 }
 
@@ -115,7 +115,7 @@ void RootWidget::drawWaveform()
 
     gateBox = new TBox(left, ymin, right, ymax);
     gateBox->SetFillColorAlpha(kYellow, 0.25);
-    gateBox->Draw();
+    //gateBox->Draw();
     gateStartLine = new TLine(left, ymin, left, ymax);
     gateEndLine = new TLine(right, ymin, right, ymax);
     gateStartLine->SetLineColor(kRed);

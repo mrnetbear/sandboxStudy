@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     QCoreApplication qtApplication(argc, argv);
 
     RootWidget rootWidget;
-    rootWidget.setGateRange(400, 600);
+    rootWidget.setGateRange(5000, 5999);
 
     WaveformServer server;
     if (!server.listen()) {
