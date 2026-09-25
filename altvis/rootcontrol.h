@@ -51,8 +51,8 @@ private:
     TBox *gateBox = nullptr;
 
     std::vector<double> currentWaveform;
-    int gateStart = 400;
-    int gateEnd = 600;
+    int gateStart = 5000;
+    int gateEnd = 10000;
     std::deque<int> rateHistory;
     int eventsThisSecond = 0;
     std::chrono::steady_clock::time_point lastRateUpdate;

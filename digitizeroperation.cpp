@@ -167,7 +167,7 @@ bool DigitizerOperation::configureDigitizer()
             emit errorOccurred(QStringLiteral("Cannot enable self trigger: %1").arg(errorCodeToString(ret)));
             return false;
         }
-        /********************************************/
+        /********************************************
         ret = CAEN_DGTZ_SetSWTriggerMode(handle[board], CAEN_DGTZ_TRGMODE_ACQ_ONLY);
         if (ret != CAEN_DGTZ_Success) {
             emit errorOccurred(
@@ -175,7 +175,7 @@ bool DigitizerOperation::configureDigitizer()
                     .arg(errorCodeToString(ret)));
             return false;
         }
-        /********************************************/
+        ********************************************/
 
         ret = CAEN_DGTZ_SetAcquisitionMode(handle[board], CAEN_DGTZ_SW_CONTROLLED);
         if (ret != CAEN_DGTZ_Success) {
@@ -287,7 +287,7 @@ void DigitizerOperation::acquisitionLoop()
     while (isAcquiring.load()) {
         for (int board = 0; board < MAXNB; ++board) {
 
-            /**********************************************/
+            /**********************************************
             ret = CAEN_DGTZ_SendSWtrigger(handle[board]);
             if (ret != CAEN_DGTZ_Success && ret != CAEN_DGTZ_Timeout) {
                 emit errorOccurred(
@@ -296,7 +296,7 @@ void DigitizerOperation::acquisitionLoop()
                         .arg(errorCodeToString(ret)));
                 continue;
             }
-            /**********************************************/
+            **********************************************/
 
             uint32_t blockSize = 0;
             ret = CAEN_DGTZ_ReadData(handle[board], CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
@@ -343,7 +343,7 @@ void DigitizerOperation::acquisitionLoop()
             if (eventCount > 0)
                 emit dataAcquired(static_cast<int>(eventCount));
         }
-        QThread::msleep(10);
+        //QThread::msleep(1); //modify for data acuisition speed
     }
 
     closeVisualizationConnection();

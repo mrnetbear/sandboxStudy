@@ -70,7 +70,7 @@ private:
     CAEN_DGTZ_EventInfo_t eventInfo{};
     CAEN_DGTZ_UINT16_EVENT_t *decodedEvent = nullptr;
 
-    uint32_t recLength = 5000;
+    uint32_t recLength = 100000;
     uint32_t chMask = 0x1;
     uint32_t trigThreshold = 32768;
 
