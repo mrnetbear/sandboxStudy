@@ -162,6 +162,12 @@ bool DigitizerOperation::configureDigitizer()
             }
         }
 
+        ret = CAEN_DGTZ_SetPostTriggerSize(handle[board], 50);
+        if (ret != CAEN_DGTZ_Success) {
+            emit errorOccurred(QStringLiteral("Cannot set post trigger size: %1").arg(errorCodeToString(ret)));
+            return false;
+        }
+
         ret = CAEN_DGTZ_SetChannelSelfTrigger(handle[board], CAEN_DGTZ_TRGMODE_ACQ_ONLY, chMask);
         if (ret != CAEN_DGTZ_Success) {
             emit errorOccurred(QStringLiteral("Cannot enable self trigger: %1").arg(errorCodeToString(ret)));
