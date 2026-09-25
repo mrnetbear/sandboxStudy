@@ -3,11 +3,12 @@
 
 #include "digitizerprotocol.h"
 
+#include <QByteArray>
+#include <QHostAddress>
 #include <QObject>
+#include <QQueue>
 #include <QTcpServer>
 #include <QTcpSocket>
-#include <QByteArray>
-#include <QQueue>
 
 class WaveformServer : public QObject
 {
@@ -15,8 +16,10 @@ class WaveformServer : public QObject
 
 public:
     explicit WaveformServer(QObject *parent = nullptr);
+
     bool listen(quint16 port = 45454,
                 const QHostAddress &address = QHostAddress::LocalHost);
+
     bool takeNextEvent(DigitizerProtocol::Event &event);
     qsizetype pendingEventCount() const;
 
@@ -35,8 +38,10 @@ private:
 
     QTcpServer server;
     QTcpSocket *client = nullptr;
+
     QByteArray inputBuffer;
     QQueue<DigitizerProtocol::Event> events;
+
     static constexpr qsizetype MaxQueuedEvents = 10000;
 };
 

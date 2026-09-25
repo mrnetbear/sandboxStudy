@@ -9,6 +9,7 @@
 DigitizerOperation::DigitizerOperation(QObject *parent)
     : QObject(parent)
 {
+    channelThresholds_.fill(trigThreshold);
 }
 
 DigitizerOperation::~DigitizerOperation()
@@ -151,31 +152,8 @@ bool DigitizerOperation::configureDigitizer()
             return false;
         }
 
-        for (unsigned channel = 0; channel < 32; ++channel) {
-            if ((chMask & (1U << channel)) == 0)
-                continue;
-            ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle[board], channel, trigThreshold);
-            if (ret != CAEN_DGTZ_Success) {
-                emit errorOccurred(QStringLiteral("Cannot set threshold for channel %1: %2")
-                                       .arg(channel).arg(errorCodeToString(ret)));
-                return false;
-            }
-        }
-
-        ret = CAEN_DGTZ_SetChannelSelfTrigger(handle[board], CAEN_DGTZ_TRGMODE_ACQ_ONLY, chMask);
-        if (ret != CAEN_DGTZ_Success) {
-            emit errorOccurred(QStringLiteral("Cannot enable self trigger: %1").arg(errorCodeToString(ret)));
+        if (!configureTriggers(board))
             return false;
-        }
-        /********************************************/
-        ret = CAEN_DGTZ_SetSWTriggerMode(handle[board], CAEN_DGTZ_TRGMODE_ACQ_ONLY);
-        if (ret != CAEN_DGTZ_Success) {
-            emit errorOccurred(
-                QStringLiteral("Cannot configure software trigger: %1")
-                    .arg(errorCodeToString(ret)));
-            return false;
-        }
-        /********************************************/
 
         ret = CAEN_DGTZ_SetAcquisitionMode(handle[board], CAEN_DGTZ_SW_CONTROLLED);
         if (ret != CAEN_DGTZ_Success) {
@@ -287,20 +265,29 @@ void DigitizerOperation::acquisitionLoop()
     while (isAcquiring.load()) {
         for (int board = 0; board < MAXNB; ++board) {
 
-            /**********************************************/
-            ret = CAEN_DGTZ_SendSWtrigger(handle[board]);
-            if (ret != CAEN_DGTZ_Success && ret != CAEN_DGTZ_Timeout) {
-                emit errorOccurred(
-                    QStringLiteral("SendSWtrigger failed for board %1: %2")
-                        .arg(board)
-                        .arg(errorCodeToString(ret)));
-                continue;
+            const bool useSoftwareTrigger =
+                triggerMode_ == TriggerMode::Software ||
+                triggerMode_ == TriggerMode::Both;
+
+            if (useSoftwareTrigger) {
+                ret = CAEN_DGTZ_SendSWtrigger(handle[board]);
+
+                if (ret != CAEN_DGTZ_Success && ret != CAEN_DGTZ_Timeout) {
+                    emit errorOccurred(
+                        QStringLiteral("SendSWtrigger failed on board %1: %2")
+                            .arg(board)
+                            .arg(errorCodeToString(ret)));
+                    continue;
+                }
             }
-            /**********************************************/
 
             uint32_t blockSize = 0;
-            ret = CAEN_DGTZ_ReadData(handle[board], CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
-                                     buffer, &blockSize);
+            ret = CAEN_DGTZ_ReadData(
+                handle[board],
+                CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
+                buffer,
+                &blockSize
+                );
 
             if (ret != CAEN_DGTZ_Success) {
                 if (ret != CAEN_DGTZ_Timeout)
@@ -328,6 +315,24 @@ void DigitizerOperation::acquisitionLoop()
                 if (ret != CAEN_DGTZ_Success || !decodedEvent)
                     continue;
 
+                const unsigned channels = channelCount();
+
+                for (unsigned channel = 0; channel < channels; ++channel) {
+                    if ((chMask & (1U << channel)) == 0)
+                        continue;
+
+                    if (decodedEvent->ChSize[channel] == 0 ||
+                        decodedEvent->DataChannel[channel] == nullptr)
+                        continue;
+
+                    sendWaveform(
+                        static_cast<quint16>(board),
+                        static_cast<quint16>(channel),
+                        static_cast<quint64>(eventInfo.TriggerTimeTag),
+                        *decodedEvent
+                        );
+                }
+
                 for (quint16 channel = 0; channel < 32; ++channel) {
                     if ((chMask & (1U << channel)) == 0)
                         continue;
@@ -343,7 +348,9 @@ void DigitizerOperation::acquisitionLoop()
             if (eventCount > 0)
                 emit dataAcquired(static_cast<int>(eventCount));
         }
-        QThread::msleep(10);
+        QThread::msleep(
+            triggerMode_ == TriggerMode::Software ? 10 : 1
+            );
     }
 
     closeVisualizationConnection();
@@ -401,5 +408,190 @@ bool DigitizerOperation::sendSoftwareTrigger()
         if (ret != CAEN_DGTZ_Success)
             return false;
     }
+    return true;
+}
+
+bool DigitizerOperation::canChangeHardwareSettings() const
+{
+    return !isAcquiring.load() && !isConfiguredFlag;
+}
+
+unsigned DigitizerOperation::channelCount() const
+{
+    if (!isOpenedFlag)
+        return MaxChannels;
+
+    return std::min<unsigned>(
+        static_cast<unsigned>(boardInfo.Channels),
+        MaxChannels
+        );
+}
+
+uint32_t DigitizerOperation::channelThreshold(unsigned channel) const
+{
+    if (channel >= MaxChannels)
+        return 0;
+
+    return channelThresholds_[channel];
+}
+
+bool DigitizerOperation::setChannelEnabled(unsigned channel, bool enabled)
+{
+    if (channel >= channelCount()) {
+        emit errorOccurred(QStringLiteral("Invalid channel number"));
+        return false;
+    }
+
+    if (!canChangeHardwareSettings()) {
+        emit errorOccurred(
+            QStringLiteral("Stop acquisition and disconnect before changing channels"));
+        return false;
+    }
+
+    const uint32_t bit = (1U << channel);
+
+    if (enabled) {
+        chMask |= bit;
+    } else {
+        chMask &= ~bit;
+        selfTriggerMask_ &= ~bit;
+    }
+
+    if (chMask == 0) {
+        emit errorOccurred(QStringLiteral("At least one acquisition channel must remain enabled"));
+        return false;
+    }
+
+    return true;
+}
+
+bool DigitizerOperation::setChannelSelfTriggerEnabled(unsigned channel, bool enabled)
+{
+    if (channel >= channelCount()) {
+        emit errorOccurred(QStringLiteral("Invalid channel number"));
+        return false;
+    }
+
+    if (!canChangeHardwareSettings()) {
+        emit errorOccurred(
+            QStringLiteral("Stop acquisition and disconnect before changing trigger settings"));
+        return false;
+    }
+
+    const uint32_t bit = (1U << channel);
+
+    if ((chMask & bit) == 0 && enabled) {
+        emit errorOccurred(
+            QStringLiteral("Enable the acquisition channel before enabling its self trigger"));
+        return false;
+    }
+
+    if (enabled) {
+        selfTriggerMask_ |= bit;
+    } else {
+        selfTriggerMask_ &= ~bit;
+    }
+
+    return true;
+}
+
+bool DigitizerOperation::setChannelThreshold(unsigned channel, uint32_t value)
+{
+    if (channel >= channelCount()) {
+        emit errorOccurred(QStringLiteral("Invalid channel number"));
+        return false;
+    }
+
+    if (value > 65535U) {
+        emit errorOccurred(QStringLiteral("Threshold must be within [0, 65535]"));
+        return false;
+    }
+
+    if (!canChangeHardwareSettings()) {
+        emit errorOccurred(
+            QStringLiteral("Stop acquisition and disconnect before changing threshold"));
+        return false;
+    }
+
+    channelThresholds_[channel] = value;
+    return true;
+}
+
+bool DigitizerOperation::setTriggerMode(TriggerMode mode)
+{
+    if (!canChangeHardwareSettings()) {
+        emit errorOccurred(
+            QStringLiteral("Stop acquisition and disconnect before changing trigger mode"));
+        return false;
+    }
+
+    if (mode == TriggerMode::Self && selfTriggerMask_ == 0) {
+        emit errorOccurred(
+            QStringLiteral("Self-trigger mode needs at least one trigger channel"));
+        return false;
+    }
+
+    triggerMode_ = mode;
+    return true;
+}
+
+
+bool DigitizerOperation::configureTriggers(int board)
+{
+    const unsigned channels = channelCount();
+
+    for (unsigned channel = 0; channel < channels; ++channel) {
+        if ((chMask & (1U << channel)) == 0)
+            continue;
+
+        ret = CAEN_DGTZ_SetChannelTriggerThreshold(
+            handle[board],
+            channel,
+            channelThresholds_[channel]
+            );
+
+        if (ret != CAEN_DGTZ_Success) {
+            lastErrorMessage =
+                QStringLiteral("Cannot set threshold on channel %1: %2")
+                    .arg(channel)
+                    .arg(errorCodeToString(ret));
+            emit errorOccurred(lastErrorMessage);
+            return false;
+        }
+    }
+
+    const uint32_t selfMask =
+        (triggerMode_ == TriggerMode::Software) ? 0U : selfTriggerMask_;
+
+    ret = CAEN_DGTZ_SetChannelSelfTrigger(
+        handle[board],
+        selfMask == 0 ? CAEN_DGTZ_TRGMODE_DISABLED
+                      : CAEN_DGTZ_TRGMODE_ACQ_ONLY,
+        selfMask
+        );
+
+    if (ret != CAEN_DGTZ_Success) {
+        lastErrorMessage =
+            QStringLiteral("Cannot configure self trigger: %1")
+                .arg(errorCodeToString(ret));
+        emit errorOccurred(lastErrorMessage);
+        return false;
+    }
+
+    const CAEN_DGTZ_TriggerMode_t swMode =
+        (triggerMode_ == TriggerMode::Self)
+            ? CAEN_DGTZ_TRGMODE_DISABLED
+            : CAEN_DGTZ_TRGMODE_ACQ_ONLY;
+
+    ret = CAEN_DGTZ_SetSWTriggerMode(handle[board], swMode);
+
+    if (ret != CAEN_DGTZ_Success) {
+        lastErrorMessage =
+            QStringLiteral("Cannot configure software trigger: %1")
+                .arg(errorCodeToString(ret));
+        emit errorOccurred(lastErrorMessage);
+        return false;
+    }
+
     return true;
 }
