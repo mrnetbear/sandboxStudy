@@ -27,11 +27,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->ButtonDisconnect->setEnabled(false);
 
-    // Подключаем сигналы от digitizer
+    // Enable the digitizer signals
     connect(&digitizer, &DigitizerOperation::progressUpdated,
             [this](QString msg) {
                 qDebug() << msg;
-                // Можно добавить вывод в статус-бар или лог
             });
 
     connect(&digitizer, &DigitizerOperation::errorOccurred,

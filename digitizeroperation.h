@@ -71,8 +71,9 @@ private:
     CAEN_DGTZ_UINT16_EVENT_t *decodedEvent = nullptr;
 
     uint32_t recLength = 100000;
-    uint32_t chMask = 0x1;
-    uint32_t trigThreshold = 32768;
+    uint32_t chMask = 0x01; //one bit per channel: 0x01 0x02 0x04 0x08
+    uint32_t trigThreshold = 32768; // 0:
+    uint32_t postTrigSize = 50; //percentage og thr post trigger size
 
     char *buffer = nullptr;
     int handle[MAXNB]{};
