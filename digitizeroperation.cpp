@@ -40,6 +40,9 @@ bool DigitizerOperation::getAcquiringStatus() const { return isAcquiring.load();
 uint32_t DigitizerOperation::getRecLength() const { return recLength; }
 uint32_t DigitizerOperation::getChMask() const { return chMask; }
 uint32_t DigitizerOperation::getTrigThreshold() const { return trigThreshold; }
+uint16_t DigitizerOperation::getPostTrigSize() const { return postTrigSize; }
+uint16_t DigitizerOperation::getGatePosition() const { return gatePosition; }
+uint16_t DigitizerOperation::getGateWidth() const { return gateWidth; }
 
 int DigitizerOperation::getTotalEventsCount() const
 {
@@ -80,7 +83,7 @@ bool DigitizerOperation::setChMask(uint32_t value)
 bool DigitizerOperation::setTrigThreshold(uint32_t value)
 {
     if (value > 65535U) {
-        emit errorOccurred(QStringLiteral("Trigger threshold must be in [0, 65535]"));
+        emit errorOccurred(QStringLiteral("Trigger threshold must be in -1250..1250 mV!"));
         return false;
     }
     if (isConfiguredFlag || isAcquiring.load()) {
@@ -95,6 +98,30 @@ void DigitizerOperation::setVisualizationEndpoint(const QString &host, quint16 p
 {
     visualizationHost = host;
     visualizationPort = port;
+}
+
+bool DigitizerOperation::setPostTrigSize(uint16_t newPostTrigSize = 50){
+    this->postTrigSize = newPostTrigSize;
+    return true;
+}
+
+bool DigitizerOperation::setGatePosition(uint16_t newGatePosition = 50){
+    this->gatePosition = newGatePosition;
+    if (this->gatePosition + this->gateWidth / 2 > 100)
+        this->gateWidth = (100 - this->gatePosition) * 2;
+    else if (this->gateWidth / 2 > this->gatePosition)
+        this->gateWidth = this->gatePosition * 2;
+    return true;
+}
+
+bool DigitizerOperation::setGateWidth(uint16_t newGateWidth){
+    if (this->gatePosition + newGateWidth / 2 > 100)
+        this->gateWidth = (100 - this->gatePosition) * 2;
+    else if (newGateWidth / 2 > this->gatePosition)
+        this->gateWidth = this->gatePosition * 2;
+    else
+        this->gateWidth = newGateWidth;
+    return true;
 }
 
 bool DigitizerOperation::openDigitizer()
@@ -247,8 +274,23 @@ bool DigitizerOperation::startAcquisition()
     }
 
     isAcquiring.store(true);
+
+    /******Acquisition*Thread*Old**********
     acquisitionThread = QThread::create([this] { acquisitionLoop(); });
     connect(acquisitionThread, &QThread::finished, acquisitionThread, &QObject::deleteLater);
+    **************************************/
+
+    /******Acquisition*Thread*New**********/
+    if (acquisitionThread){
+        delete acquisitionThread;
+        acquisitionThread = nullptr;
+    }
+
+    acquisitionThread = QThread::create([this] {
+                            acquisitionLoop();
+    });
+    /**************************************/
+
     acquisitionThread->start();
 
     emit acquisitionStarted();
@@ -361,10 +403,25 @@ bool DigitizerOperation::stopAcquisition()
     if (!isAcquiring.exchange(false))
         return true;
 
+    /******Old*Acquisition*Stop*******
     if (acquisitionThread && acquisitionThread->isRunning())
         acquisitionThread->wait(5000);
     acquisitionThread = nullptr;
+    *********************************/
 
+    /******New*Acquisition*Stop*******/
+    if (acquisitionThread) {
+        if (acquisitionThread->isRunning() &&
+            !acquisitionThread->wait(5000)) {
+            emit errorOccurred(
+                QStringLiteral("Acquisition thread did not stop within 5 seconds"));
+            return false;
+        }
+
+        delete acquisitionThread;
+        acquisitionThread = nullptr;
+    }
+    /*********************************/
     for (int board = 0; board < MAXNB; ++board)
         CAEN_DGTZ_SWStopAcquisition(handle[board]);
 

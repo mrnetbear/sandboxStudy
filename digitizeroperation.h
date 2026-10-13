@@ -12,6 +12,7 @@
 #include <cstdint>
 
 #define MAXNB 1
+#define ZERO_TRESHOLD_STATE 0x7FFF
 
 class DigitizerOperation : public QObject
 {
@@ -33,6 +34,9 @@ public:
     bool setChMask(uint32_t newChMask);
     bool setTrigThreshold(uint32_t newTrigThreshold);
     void setVisualizationEndpoint(const QString &host, quint16 port);
+    bool setPostTrigSize(uint16_t newPostTrigSize);
+    bool setGatePosition(uint16_t newGatePosition);
+    bool setGateWidth(uint16_t newGateWidth);
 
     bool isOpened() const;
     bool isConfigured() const;
@@ -44,6 +48,9 @@ public:
     uint32_t getRecLength() const;
     uint32_t getChMask() const;
     uint32_t getTrigThreshold() const;
+    uint16_t getPostTrigSize() const;
+    uint16_t getGatePosition() const;
+    uint16_t getGateWidth() const;
 
 signals:
     void acquisitionStarted();
@@ -70,10 +77,10 @@ private:
     CAEN_DGTZ_EventInfo_t eventInfo{};
     CAEN_DGTZ_UINT16_EVENT_t *decodedEvent = nullptr;
 
-    uint32_t recLength = 100000;
+    uint32_t recLength = 8192;
     uint32_t chMask = 0x01; //one bit per channel: 0x01 0x02 0x04 0x08
-    uint32_t trigThreshold = 32768; // 0:
-    uint32_t postTrigSize = 50; //percentage og thr post trigger size
+    uint32_t trigThreshold = ZERO_TRESHOLD_STATE; //zero state
+    uint32_t postTrigSize = 50; //percentage of the post trigger size
 
     char *buffer = nullptr;
     int handle[MAXNB]{};
@@ -90,6 +97,8 @@ private:
     quint16 visualizationPort = 45454;
     QTcpSocket *visualizationSocket = nullptr;
     quint64 nextEventId = 0;
+    uint16_t gateWidth = 50;
+    uint16_t gatePosition = 50;
 };
 
 #endif // DIGITIZEROPERATION_H

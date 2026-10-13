@@ -136,6 +136,9 @@ void RootWidget::drawSpectrum()
     energyHist->Draw("hist");
     energyCanvas->Modified();
     energyCanvas->Update();
+    TFile *oGrph = new TFile("spectrums/Spectrum.root", "RECREATE");
+    energyHist->Write();
+    oGrph->Close();
 }
 
 void RootWidget::drawRate()

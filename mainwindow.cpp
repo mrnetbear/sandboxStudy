@@ -12,8 +12,8 @@ MainWindow::MainWindow(QWidget *parent)
     Logger::instance()->info("Application Started");
     Logger::instance()->info(QString("Qt Version: %1").arg(qVersion()));
 
-    ui->lineEditRecordLength->setValidator(new QIntValidator(1, 1048576, this));
-    ui->lineEditThreshold->setValidator(new QIntValidator(0, 65535, this));
+    //ui->lineEditRecordLength->setValidator(new QIntValidator(1, 1048576, this));
+    //ui->lineEditThreshold->setValidator(new QIntValidator(-1250, 1250, this));
 
     connect(ui->lineEditRecordLength, &QLineEdit::returnPressed,
             this, &MainWindow::on_lineEditRecordLength_returnPressed);
@@ -21,9 +21,14 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::on_lineEditThreshold_returnPressed);
 
     ui->lineEditRecordLength->setText(QString::number(digitizer.getRecLength()));
-    ui->lineEditThreshold->setText(QString::number(digitizer.getTrigThreshold()));
-    ui->lineEditRecordLength->setValidator(new QIntValidator(this));
-    ui->lineEditThreshold->setValidator(new QIntValidator(this));
+    QString thresText = (digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / 26 <= 0 ?
+                            QString::number((ZERO_TRESHOLD_STATE - digitizer.getTrigThreshold()) / 26):
+                            ("-" + QString::number((digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / 26));
+    ui->lineEditThreshold->setText(thresText);
+    //ui->lineEditRecordLength->setValidator(new QIntValidator(this));
+    //ui->lineEditThreshold->setValidator(new QIntValidator(this));
+    ui->lineEditRecordLength->setValidator(new QIntValidator(1, 1048576, this));
+    ui->lineEditThreshold->setValidator(new QIntValidator(-1250, 1250, this));
 
     ui->ButtonDisconnect->setEnabled(false);
 
@@ -64,16 +69,16 @@ MainWindow::~MainWindow()
 
 bool MainWindow::loadConfig(){
     if(!QFile::exists(pathToConfig)) {
-        QMessageBox::warning(this, "Ошибка",
-            "Не удалось найти файл конфигурации. Проверьте путь и повторите попытку.");
+        QMessageBox::warning(this, "Error",
+            "Config file is missed. Check the path and try again.");
         return 1;
     }
     QFile confFile;
     confFile.setFileName(pathToConfig);
 
     if (!confFile.open(QIODevice::ReadOnly | QIODevice::Text)){
-        QMessageBox::warning(this, "Ошибка",
-            "Не удалось открыть файл конфигурации.");
+        QMessageBox::warning(this, "Error",
+            "Cannot open a config file.");
         return 1;
     }
     while(!confFile.atEnd()){
@@ -86,8 +91,8 @@ bool MainWindow::loadConfig(){
 
 void MainWindow::on_ButtonConnect_clicked()
 {
-    ui->ButtonConnect->setEnabled(false);
-    ui->ButtonDisconnect->setEnabled(true);
+    //ui->ButtonConnect->setEnabled(false);
+    //ui->ButtonDisconnect->setEnabled(true);
     // Открываем и настраиваем оцифровщик
     if (!digitizer.openDigitizer()) {
         Logger::instance()->error("Failed to open digitizer");
@@ -107,6 +112,7 @@ void MainWindow::on_ButtonConnect_clicked()
     ui->ButtonConnect->setEnabled(false);
     ui->ButtonDisconnect->setEnabled(true);
     //ui->ButtonStartStop->setText("Stop");
+    ui->labelStatus->setText("CONNECTED");
 }
 
 void MainWindow::on_ButtonDisconnect_clicked()
@@ -117,6 +123,7 @@ void MainWindow::on_ButtonDisconnect_clicked()
     ui->ButtonConnect->setEnabled(true);
     ui->ButtonDisconnect->setEnabled(false);
     ui->ButtonStartStop->setText("Start");
+    ui->labelStatus->setText("DISCONNECTED");
 }
 
 
@@ -149,10 +156,10 @@ void MainWindow::on_action_ROOT_triggered()
     //qDebug() << QCoreApplication::applicationDirPath();
     //process->startDetached(pathToVis);
     if (!process->startDetached(pathToVis)) {
-        QMessageBox::warning(this, "Ошибка",
-                             "Не удалось запустить ROOT приложение. Проверьте путь и повторите попытку.");
+        QMessageBox::warning(this, "Error!",
+                             "Cannot open a ROOT application. Check the path and try again.");
     } else {
-        qDebug() << "ROOT приложение запущено:" << pathToVis;
+        qDebug() << "ROOT application started at:" << pathToVis;
     }
     process->waitForFinished();
 
@@ -196,7 +203,7 @@ void MainWindow::on_lineEditRecordLength_editingFinished()
 void MainWindow::on_lineEditRecordLength_returnPressed()
 {
     bool ok = false;
-    const uint32_t value = ui->lineEditRecordLength->text().toUInt(&ok);
+    const uint32_t value = ui->lineEditRecordLength->text().toInt(&ok);
     if (!ok || !digitizer.setRecLength(value))
         ui->lineEditRecordLength->setText(QString::number(digitizer.getRecLength()));
 }
@@ -204,7 +211,37 @@ void MainWindow::on_lineEditRecordLength_returnPressed()
 void MainWindow::on_lineEditThreshold_returnPressed()
 {
     bool ok = false;
-    const uint32_t value = ui->lineEditThreshold->text().toUInt(&ok);
-    if (!ok || !digitizer.setTrigThreshold(value))
-        ui->lineEditThreshold->setText(QString::number(digitizer.getTrigThreshold()));
+    const int32_t value = ui->lineEditThreshold->text().toInt(&ok);
+    if (!ok || !digitizer.setTrigThreshold(- value * 26 + ZERO_TRESHOLD_STATE)){
+        if (value > 1250 || value < -1250) return;
+        QString thresText = (digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / 26 <= 0 ?
+                                QString::number((ZERO_TRESHOLD_STATE - digitizer.getTrigThreshold()) / 26):
+                                ("-" + QString::number((digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / 26));
+        ui->lineEditThreshold->setText(thresText);
+    }
+    qDebug() << "Current threshold: " << (digitizer.getTrigThreshold());
 }
+
+void MainWindow::on_horizontalSlider_sliderMoved(int position)
+{
+    digitizer.setPostTrigSize(position);
+    qDebug() << "Current Post trigger size: " << digitizer.getPostTrigSize();
+}
+
+
+void MainWindow::on_horizontalSliderGateWidth_sliderMoved(int position)
+{
+    digitizer.setGateWidth(position);
+    qDebug() << "Current Gate Width: " << digitizer.getGateWidth();
+}
+
+
+void MainWindow::on_horizontalSliderGatePosition_sliderMoved(int position)
+{
+    digitizer.setGatePosition(position);
+    qDebug() << "==================";
+    qDebug() << "Current Gate Position: " << digitizer.getGatePosition();
+    qDebug() << "Current Gate Width: " << digitizer.getGateWidth();
+    qDebug() << "==================";
+}
+
