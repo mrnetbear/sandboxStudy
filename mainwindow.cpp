@@ -89,6 +89,26 @@ bool MainWindow::loadConfig(){
     return 0;
 }
 
+bool MainWindow::sendParams(quint16 channel,
+                            uint16_t gateWidth, uint16_t gatePosition){
+    if  (!digitizer.openVisualizationConnection())
+        return false;
+
+    DigitizerProtocol::Params packetParams;
+    packetParams.channel = 0;
+    packetParams.gatePosition = digitizer.getGatePosition();
+    packetParams.gateWidth = digitizer.getGateWidth();
+
+    const QByteArray packet = DigitizerProtocol::makeParametersPacket(packetParams);
+    if(digitizer.visualizationSocket->write(packet) != packet.size() ||
+        !digitizer.visualizationSocket->waitForBytesWritten(100)) {
+        digitizer.closeVisualizationConnection();
+        return false;
+    }
+
+    return true;
+}
+
 void MainWindow::on_ButtonConnect_clicked()
 {
     //ui->ButtonConnect->setEnabled(false);
@@ -225,6 +245,8 @@ void MainWindow::on_lineEditThreshold_returnPressed()
 void MainWindow::on_horizontalSlider_sliderMoved(int position)
 {
     digitizer.setPostTrigSize(position);
+    sendParams(0, digitizer.getGateWidth(),
+               digitizer.getGatePosition());
     qDebug() << "Current Post trigger size: " << digitizer.getPostTrigSize();
 }
 
@@ -232,6 +254,8 @@ void MainWindow::on_horizontalSlider_sliderMoved(int position)
 void MainWindow::on_horizontalSliderGateWidth_sliderMoved(int position)
 {
     digitizer.setGateWidth(position);
+    sendParams(0, digitizer.getGateWidth(),
+               digitizer.getGatePosition());
     qDebug() << "Current Gate Width: " << digitizer.getGateWidth();
 }
 

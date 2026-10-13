@@ -17,7 +17,8 @@ constexpr quint32 MaxSamples = 1U << 20;    // защита при повреж�
 constexpr quint32 MaxPayloadBytes = 2U * 1024U * 1024U;
 
 enum class MessageType : quint16 {
-    WaveformEvent = 1
+    WaveformEvent = 1,
+    Parameters = 2
 };
 
 struct Event {
@@ -27,6 +28,12 @@ struct Event {
     quint16 channel = 0;
     quint16 adcBits = 16;
     QVector<quint16> samples;
+};
+
+struct Params {
+    uint16_t gateWidth = 50;
+    uint16_t gatePosition = 50;
+    uint16_t channel = 0;
 };
 
 inline QDataStream &operator<<(QDataStream &out, const Event &event)
@@ -40,6 +47,14 @@ inline QDataStream &operator<<(QDataStream &out, const Event &event)
     return out;
 }
 
+inline QDataStream &operator<<(QDataStream &out, const Params &params)
+{
+    out << params.channel
+        << params.gateWidth
+        << params.gatePosition;
+    return out;
+}
+
 inline QDataStream &operator>>(QDataStream &in, Event &event)
 {
     in >> event.eventId
@@ -48,6 +63,14 @@ inline QDataStream &operator>>(QDataStream &in, Event &event)
         >> event.channel
         >> event.adcBits
         >> event.samples;
+    return in;
+}
+
+inline QDataStream &operator>>(QDataStream &in, Params &params)
+{
+    in >> params.channel
+        >> params.gateWidth
+        >> params.gatePosition;
     return in;
 }
 
@@ -64,6 +87,23 @@ inline QByteArray makePacket(const Event &event)
     stream << Magic
            << Version
            << static_cast<quint16>(MessageType::WaveformEvent)
+           << static_cast<quint32>(payload.size());
+    packet.append(payload);
+    return packet;
+}
+
+inline QByteArray makeParametersPacket(const Params &params){
+    QByteArray payload;
+    QDataStream payloadStream(&payload, QIODevice::WriteOnly);
+    payloadStream.setVersion(QDataStream::Qt_5_15);
+    payloadStream << params;
+
+    QByteArray packet;
+    QDataStream stream(&packet, QIODevice::WriteOnly);
+    stream.setVersion(QDataStream::Qt_5_15);
+    stream << Magic
+           << Version
+           << static_cast<quint16>(MessageType::Parameters)
            << static_cast<quint32>(payload.size());
     packet.append(payload);
     return packet;

@@ -38,6 +38,9 @@ public:
     bool setGatePosition(uint16_t newGatePosition);
     bool setGateWidth(uint16_t newGateWidth);
 
+    bool openVisualizationConnection();
+    void closeVisualizationConnection();
+
     bool isOpened() const;
     bool isConfigured() const;
     bool getAcquiringStatus() const;
@@ -66,8 +69,6 @@ signals:
 
 private:
     void acquisitionLoop();
-    bool openVisualizationConnection();
-    void closeVisualizationConnection();
     bool sendWaveform(quint16 board, quint16 channel,
                       quint64 timestamp, const CAEN_DGTZ_UINT16_EVENT_t &event);
     QString errorCodeToString(CAEN_DGTZ_ErrorCode code) const;
@@ -93,12 +94,17 @@ private:
     QThread *acquisitionThread = nullptr;
     QString lastErrorMessage;
 
-    QString visualizationHost = QStringLiteral("127.0.0.1");
-    quint16 visualizationPort = 45454;
-    QTcpSocket *visualizationSocket = nullptr;
     quint64 nextEventId = 0;
     uint16_t gateWidth = 50;
     uint16_t gatePosition = 50;
+
+public:
+    QString visualizationHost = QStringLiteral("127.0.0.1");
+    quint16 visualizationPort = 45454;
+    QTcpSocket *visualizationSocket = nullptr;
+
+
+
 };
 
 #endif // DIGITIZEROPERATION_H

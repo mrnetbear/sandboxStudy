@@ -16,6 +16,7 @@
 #include "dialogsettingvispath.h"
 #include "dialogprotocol.h"
 #include "digitizeroperation.h"
+#include "digitizerprotocol.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -31,6 +32,7 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     bool loadConfig();
+    bool sendParams(quint16 channel, uint16_t gateWidth, uint16_t gatePosition);
 
 protected:
 
