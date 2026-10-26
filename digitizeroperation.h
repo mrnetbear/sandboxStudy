@@ -12,7 +12,8 @@
 #include <cstdint>
 
 #define MAXNB 1
-#define ZERO_TRESHOLD_STATE 0x7FFF
+#define ZERO_TRESHOLD_STATE 605
+#define ONE_TO_ADC_TRESHOLD 26//33
 
 class DigitizerOperation : public QObject
 {

@@ -29,6 +29,11 @@ public:
     void refreshDisplays();
     void processEvents();
 
+    bool setGatePercent(double positionPercent,
+                    double widthPercent);
+
+    void clearForChannelChange();
+
     void setGateRange(int start, int end);
     std::pair<int, int> getGateRange() const { return {gateStart, gateEnd}; }
     void shutdownROOT();
@@ -38,6 +43,12 @@ private:
     void drawWaveform();
     void drawSpectrum();
     void drawRate();
+    
+    void updateGateIndices(int sampleCount);
+
+    double gatePositionPercent = 50.0;
+    double gateWidthPercent = 50.0;
+
     double calculateBaseline(const std::vector<double> &samples) const;
     double calculateEnergy(const std::vector<double> &samples) const;
 

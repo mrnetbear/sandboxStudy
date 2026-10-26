@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <cmath>
 
 TApplication *gApplication = nullptr;
 
@@ -73,6 +74,7 @@ void RootWidget::processWaveform(const std::vector<double> &samples, quint64,
         return;
 
     currentWaveform = samples;
+    updateGateIndices(static_cast<int>(currentWaveform.size()));
     energyHist->Fill(calculateEnergy(currentWaveform));
     ++eventsThisSecond;
 
@@ -136,7 +138,7 @@ void RootWidget::drawSpectrum()
     energyHist->Draw("hist");
     energyCanvas->Modified();
     energyCanvas->Update();
-    TFile *oGrph = new TFile("spectrums/Spectrum.root", "RECREATE");
+    TFile *oGrph = new TFile("Spectrum.root", "RECREATE");
     energyHist->Write();
     oGrph->Close();
 }
@@ -182,4 +184,79 @@ void RootWidget::shutdownROOT()
     delete waveformCanvas; waveformCanvas = nullptr;
     delete energyCanvas; energyCanvas = nullptr;
     delete rateCanvas; rateCanvas = nullptr;
+}
+
+void RootWidget::updateGateIndices(int sampleCount)
+{
+    if (sampleCount < 2) {
+        gateStart = 0;
+        gateEnd = sampleCount;
+        return;
+    }
+
+    const int width = std::clamp(
+        static_cast<int>(std::lround(
+            gateWidthPercent * sampleCount / 100.0)),
+        2,
+        sampleCount);
+
+    const double center =
+        gatePositionPercent * sampleCount / 100.0;
+
+    const int requestedStart = static_cast<int>(
+        std::lround(center - width / 2.0));
+
+    gateStart = std::clamp(
+        requestedStart, 0, sampleCount - width);
+
+    gateEnd = gateStart + width;
+}
+
+bool RootWidget::setGatePercent(
+    double positionPercent, double widthPercent)
+{
+    if (!std::isfinite(positionPercent) ||
+        !std::isfinite(widthPercent) ||
+        positionPercent < 0.0 ||
+        positionPercent > 100.0 ||
+        widthPercent < 1.0 ||
+        widthPercent > 100.0) {
+        return false;
+    }
+
+    if (gatePositionPercent == positionPercent &&
+        gateWidthPercent == widthPercent) {
+        return true;
+    }
+
+    gatePositionPercent = positionPercent;
+    gateWidthPercent = widthPercent;
+
+    // Не смешиваем интегралы, полученные с разными окнами.
+    if (energyHist)
+        energyHist->Reset();
+
+    updateGateIndices(
+        static_cast<int>(currentWaveform.size()));
+
+    return true;
+}
+
+void RootWidget::clearForChannelChange()
+{
+    currentWaveform.clear();
+
+    if (energyHist)
+        energyHist->Reset();
+
+    rateHistory.clear();
+    eventsThisSecond = 0;
+    lastRateUpdate = std::chrono::steady_clock::now();
+
+    // Убираем изображение предыдущего канала.
+    if (waveformCanvas) {
+        waveformCanvas->Clear();
+        waveformCanvas->Modified();
+        waveformCanvas->Update();
+    }
 }

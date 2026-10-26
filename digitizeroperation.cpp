@@ -106,7 +106,11 @@ bool DigitizerOperation::setPostTrigSize(uint16_t newPostTrigSize = 50){
 }
 
 bool DigitizerOperation::setGatePosition(uint16_t newGatePosition = 50){
-    this->gatePosition = newGatePosition;
+    /*************check*borders*first*************/
+    if (!newGatePosition) this->gatePosition = 1;
+    else if (newGatePosition == 100) this->gatePosition = 99;
+    /*********************************************/
+    else this->gatePosition = newGatePosition; //else set right gate position
     if (this->gatePosition + this->gateWidth / 2 > 100)
         this->gateWidth = (100 - this->gatePosition) * 2;
     else if (this->gateWidth / 2 > this->gatePosition)
@@ -182,6 +186,8 @@ bool DigitizerOperation::configureDigitizer()
             if ((chMask & (1U << channel)) == 0)
                 continue;
             ret = CAEN_DGTZ_SetChannelTriggerThreshold(handle[board], channel, trigThreshold);
+            ret = CAEN_DGTZ_GetChannelTriggerThreshold(handle[board], channel, &trigThreshold); //getting threshold
+            qDebug() << "Trigger threshold" << trigThreshold;
             if (ret != CAEN_DGTZ_Success) {
                 emit errorOccurred(QStringLiteral("Cannot set threshold for channel %1: %2")
                                        .arg(channel).arg(errorCodeToString(ret)));
@@ -440,10 +446,10 @@ bool DigitizerOperation::closeDigitizer()
         buffer = nullptr;
     }
     for (int board = 0; board < MAXNB; ++board) {
-        if (handle[board] != 0) {
+        //if (handle[board] != 0) {
             CAEN_DGTZ_CloseDigitizer(handle[board]);
-            handle[board] = 0;
-        }
+            //handle[board] = 0;
+        //}
     }
     isOpenedFlag = false;
     isConfiguredFlag = false;

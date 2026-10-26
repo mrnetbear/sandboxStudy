@@ -21,14 +21,14 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::on_lineEditThreshold_returnPressed);
 
     ui->lineEditRecordLength->setText(QString::number(digitizer.getRecLength()));
-    QString thresText = (digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / 26 <= 0 ?
-                            QString::number((ZERO_TRESHOLD_STATE - digitizer.getTrigThreshold()) / 26):
-                            ("-" + QString::number((digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / 26));
+    QString thresText = QString::number(digitizer.getTrigThreshold());/*(digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / ONE_TO_ADC_TRESHOLD <= 0 ?
+                            QString::number((ZERO_TRESHOLD_STATE - digitizer.getTrigThreshold()) / ONE_TO_ADC_TRESHOLD):
+                            ("-" + QString::number((digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / ONE_TO_ADC_TRESHOLD));*/
     ui->lineEditThreshold->setText(thresText);
     //ui->lineEditRecordLength->setValidator(new QIntValidator(this));
     //ui->lineEditThreshold->setValidator(new QIntValidator(this));
     ui->lineEditRecordLength->setValidator(new QIntValidator(1, 1048576, this));
-    ui->lineEditThreshold->setValidator(new QIntValidator(-1250, 1250, this));
+    ui->lineEditThreshold->setValidator(new QIntValidator(0, 1024, this));
 
     ui->ButtonDisconnect->setEnabled(false);
 
@@ -232,11 +232,11 @@ void MainWindow::on_lineEditThreshold_returnPressed()
 {
     bool ok = false;
     const int32_t value = ui->lineEditThreshold->text().toInt(&ok);
-    if (!ok || !digitizer.setTrigThreshold(- value * 26 + ZERO_TRESHOLD_STATE)){
-        if (value > 1250 || value < -1250) return;
-        QString thresText = (digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / 26 <= 0 ?
-                                QString::number((ZERO_TRESHOLD_STATE - digitizer.getTrigThreshold()) / 26):
-                                ("-" + QString::number((digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / 26));
+    if (!ok || !digitizer.setTrigThreshold(value)){//- value * ONE_TO_ADC_TRESHOLD + ZERO_TRESHOLD_STATE)){
+        if (value > 1024 || value < -1000) return;
+        QString thresText = QString::number(digitizer.getTrigThreshold());/*(digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / ONE_TO_ADC_TRESHOLD <= 0 ?
+                                QString::number((ZERO_TRESHOLD_STATE - digitizer.getTrigThreshold()) / ONE_TO_ADC_TRESHOLD):
+                                ("-" + QString::number((digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / ONE_TO_ADC_TRESHOLD));*/
         ui->lineEditThreshold->setText(thresText);
     }
     qDebug() << "Current threshold: " << (digitizer.getTrigThreshold());
@@ -245,14 +245,16 @@ void MainWindow::on_lineEditThreshold_returnPressed()
 void MainWindow::on_horizontalSlider_sliderMoved(int position)
 {
     digitizer.setPostTrigSize(position);
-    sendParams(0, digitizer.getGateWidth(),
-               digitizer.getGatePosition());
     qDebug() << "Current Post trigger size: " << digitizer.getPostTrigSize();
 }
 
 
 void MainWindow::on_horizontalSliderGateWidth_sliderMoved(int position)
 {
+    if (!position) {
+        position = 1;
+        ui->horizontalSliderGateWidth->setSliderPosition(position);
+    }
     digitizer.setGateWidth(position);
     sendParams(0, digitizer.getGateWidth(),
                digitizer.getGatePosition());
@@ -262,7 +264,17 @@ void MainWindow::on_horizontalSliderGateWidth_sliderMoved(int position)
 
 void MainWindow::on_horizontalSliderGatePosition_sliderMoved(int position)
 {
+    if (!position) {
+        //position = 1;
+        ui->horizontalSliderGatePosition->setSliderPosition(1);
+    } else if (position == 100){
+        //position = 99;
+        ui->horizontalSliderGatePosition->setSliderPosition(99);
+    }
     digitizer.setGatePosition(position);
+    sendParams(0, digitizer.getGateWidth(),
+               digitizer.getGatePosition());
+    ui->horizontalSliderGateWidth->setSliderPosition(digitizer.getGateWidth());
     qDebug() << "==================";
     qDebug() << "Current Gate Position: " << digitizer.getGatePosition();
     qDebug() << "Current Gate Width: " << digitizer.getGateWidth();
