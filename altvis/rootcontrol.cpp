@@ -63,7 +63,7 @@ double RootWidget::calculateEnergy(const std::vector<double> &samples) const
 
     double energy = 0.0;
     for (int index = begin; index < end; ++index)
-        energy += - (samples[static_cast<size_t>(index)] - baseline);
+        energy += std::abs(samples[static_cast<size_t>(index)] - baseline);
     return energy;
 }
 

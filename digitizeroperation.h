@@ -13,7 +13,8 @@
 
 #define MAXNB 1
 #define ZERO_TRESHOLD_STATE 605
-#define ONE_TO_ADC_TRESHOLD 26//33
+#define ZERO_DC_OFFSET 0x7FFF //512 mV
+#define DC_OFFSET_TO_VOLTAGE 64
 
 class DigitizerOperation : public QObject
 {
@@ -38,6 +39,7 @@ public:
     bool setPostTrigSize(uint16_t newPostTrigSize);
     bool setGatePosition(uint16_t newGatePosition);
     bool setGateWidth(uint16_t newGateWidth);
+    bool setOffset(uint32_t newOffset);
 
     bool openVisualizationConnection();
     void closeVisualizationConnection();
@@ -55,6 +57,7 @@ public:
     uint16_t getPostTrigSize() const;
     uint16_t getGatePosition() const;
     uint16_t getGateWidth() const;
+    uint32_t getOffset() const;
 
 signals:
     void acquisitionStarted();
@@ -82,7 +85,8 @@ private:
     uint32_t recLength = 8192;
     uint32_t chMask = 0x01; //one bit per channel: 0x01 0x02 0x04 0x08
     uint32_t trigThreshold = ZERO_TRESHOLD_STATE; //zero state
-    uint32_t postTrigSize = 50; //percentage of the post trigger size
+    uint16_t postTrigSize = 50; //percentage of the post trigger size
+    uint32_t offset = ZERO_DC_OFFSET;
 
     char *buffer = nullptr;
     int handle[MAXNB]{};

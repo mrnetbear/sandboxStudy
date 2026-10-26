@@ -43,6 +43,7 @@ uint32_t DigitizerOperation::getTrigThreshold() const { return trigThreshold; }
 uint16_t DigitizerOperation::getPostTrigSize() const { return postTrigSize; }
 uint16_t DigitizerOperation::getGatePosition() const { return gatePosition; }
 uint16_t DigitizerOperation::getGateWidth() const { return gateWidth; }
+uint32_t DigitizerOperation::getOffset() const { return offset; }
 
 int DigitizerOperation::getTotalEventsCount() const
 {
@@ -128,6 +129,11 @@ bool DigitizerOperation::setGateWidth(uint16_t newGateWidth){
     return true;
 }
 
+bool DigitizerOperation::setOffset(uint32_t newOffset){
+    this->offset = newOffset;
+    return true;
+}
+
 bool DigitizerOperation::openDigitizer()
 {
     if (isOpenedFlag)
@@ -180,6 +186,19 @@ bool DigitizerOperation::configureDigitizer()
         if (ret != CAEN_DGTZ_Success) {
             emit errorOccurred(QStringLiteral("Cannot set channel mask: %1").arg(errorCodeToString(ret)));
             return false;
+        }
+
+        for (unsigned channel = 0; channel < 32; ++channel) {
+            if ((chMask & (1U << channel)) == 0)
+                continue;
+            ret = CAEN_DGTZ_SetChannelDCOffset(handle[board], channel, offset);
+            ret = CAEN_DGTZ_GetChannelDCOffset(handle[board], channel, &offset);
+            qDebug() << "DC offset" << offset;
+            if (ret != CAEN_DGTZ_Success) {
+                emit errorOccurred(QStringLiteral("Cannot set DCOffset for channel %1: %2")
+                                       .arg(channel).arg(errorCodeToString(ret)));
+                return false;
+            }
         }
 
         for (unsigned channel = 0; channel < 32; ++channel) {

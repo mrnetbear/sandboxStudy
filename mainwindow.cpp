@@ -12,23 +12,19 @@ MainWindow::MainWindow(QWidget *parent)
     Logger::instance()->info("Application Started");
     Logger::instance()->info(QString("Qt Version: %1").arg(qVersion()));
 
-    //ui->lineEditRecordLength->setValidator(new QIntValidator(1, 1048576, this));
-    //ui->lineEditThreshold->setValidator(new QIntValidator(-1250, 1250, this));
-
     connect(ui->lineEditRecordLength, &QLineEdit::returnPressed,
             this, &MainWindow::on_lineEditRecordLength_returnPressed);
     connect(ui->lineEditThreshold, &QLineEdit::returnPressed,
             this, &MainWindow::on_lineEditThreshold_returnPressed);
 
     ui->lineEditRecordLength->setText(QString::number(digitizer.getRecLength()));
-    QString thresText = QString::number(digitizer.getTrigThreshold());/*(digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / ONE_TO_ADC_TRESHOLD <= 0 ?
-                            QString::number((ZERO_TRESHOLD_STATE - digitizer.getTrigThreshold()) / ONE_TO_ADC_TRESHOLD):
-                            ("-" + QString::number((digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / ONE_TO_ADC_TRESHOLD));*/
+    QString thresText = QString::number(digitizer.getTrigThreshold());
     ui->lineEditThreshold->setText(thresText);
-    //ui->lineEditRecordLength->setValidator(new QIntValidator(this));
-    //ui->lineEditThreshold->setValidator(new QIntValidator(this));
+    ui->lineEditOffset->setText(QString::number(1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE));
+
     ui->lineEditRecordLength->setValidator(new QIntValidator(1, 1048576, this));
     ui->lineEditThreshold->setValidator(new QIntValidator(0, 1024, this));
+    ui->lineEditOffset->setValidator(new QIntValidator(0, 1024, this));
 
     ui->ButtonDisconnect->setEnabled(false);
 
@@ -232,11 +228,9 @@ void MainWindow::on_lineEditThreshold_returnPressed()
 {
     bool ok = false;
     const int32_t value = ui->lineEditThreshold->text().toInt(&ok);
-    if (!ok || !digitizer.setTrigThreshold(value)){//- value * ONE_TO_ADC_TRESHOLD + ZERO_TRESHOLD_STATE)){
+    if (!ok || !digitizer.setTrigThreshold(value)){
         if (value > 1024 || value < -1000) return;
-        QString thresText = QString::number(digitizer.getTrigThreshold());/*(digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / ONE_TO_ADC_TRESHOLD <= 0 ?
-                                QString::number((ZERO_TRESHOLD_STATE - digitizer.getTrigThreshold()) / ONE_TO_ADC_TRESHOLD):
-                                ("-" + QString::number((digitizer.getTrigThreshold() - ZERO_TRESHOLD_STATE) / ONE_TO_ADC_TRESHOLD));*/
+        QString thresText = QString::number(digitizer.getTrigThreshold());
         ui->lineEditThreshold->setText(thresText);
     }
     qDebug() << "Current threshold: " << (digitizer.getTrigThreshold());
@@ -259,6 +253,7 @@ void MainWindow::on_horizontalSliderGateWidth_sliderMoved(int position)
     sendParams(0, digitizer.getGateWidth(),
                digitizer.getGatePosition());
     qDebug() << "Current Gate Width: " << digitizer.getGateWidth();
+    QThread::msleep(10);
 }
 
 
@@ -279,5 +274,14 @@ void MainWindow::on_horizontalSliderGatePosition_sliderMoved(int position)
     qDebug() << "Current Gate Position: " << digitizer.getGatePosition();
     qDebug() << "Current Gate Width: " << digitizer.getGateWidth();
     qDebug() << "==================";
+}
+
+
+void MainWindow::on_lineEditOffset_returnPressed()
+{
+    bool ok = false;
+    const int32_t value = ui->lineEditOffset->text().toInt(&ok);
+    if (!ok || !digitizer.setOffset((1024 - value) * DC_OFFSET_TO_VOLTAGE))
+        ui->lineEditOffset->setText(QString::number(digitizer.getOffset()));
 }
 

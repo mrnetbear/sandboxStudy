@@ -64,6 +64,8 @@ private slots:
 
     void on_horizontalSliderGatePosition_sliderMoved(int position);
 
+    void on_lineEditOffset_returnPressed();
+
 private:
     Ui::MainWindow *ui;
     QString pathToVis = "/home/mrnetlex/Documents/Progs/C++/qt-projects/sandboxStudyAlternative/altvis/build/rootVis";
