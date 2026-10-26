@@ -18,12 +18,16 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::on_lineEditThreshold_returnPressed);
 
     ui->lineEditRecordLength->setText(QString::number(digitizer.getRecLength()));
-    QString thresText = QString::number(digitizer.getTrigThreshold());
+    QString thresText = digitizer.getTrigThreshold() - (1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE) < 0 ?
+                            "-" + QString::number(-(digitizer.getTrigThreshold() - (1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE))) :
+                            QString::number(digitizer.getTrigThreshold() - (1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE));
+    qDebug() << "Text Threshold: " << thresText;
     ui->lineEditThreshold->setText(thresText);
     ui->lineEditOffset->setText(QString::number(1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE));
+    qDebug() << "Text Offset: " << 1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE;
 
     ui->lineEditRecordLength->setValidator(new QIntValidator(1, 1048576, this));
-    ui->lineEditThreshold->setValidator(new QIntValidator(0, 1024, this));
+    ui->lineEditThreshold->setValidator(new QIntValidator(-1024, 1024, this));
     ui->lineEditOffset->setValidator(new QIntValidator(0, 1024, this));
 
     ui->ButtonDisconnect->setEnabled(false);
@@ -228,10 +232,16 @@ void MainWindow::on_lineEditThreshold_returnPressed()
 {
     bool ok = false;
     const int32_t value = ui->lineEditThreshold->text().toInt(&ok);
-    if (!ok || !digitizer.setTrigThreshold(value)){
-        if (value > 1024 || value < -1000) return;
-        QString thresText = QString::number(digitizer.getTrigThreshold());
-        ui->lineEditThreshold->setText(thresText);
+    if (value + (1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE) > 1024 ||
+        value + (1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE) < 0 ||
+        value > 1024){
+        ui->lineEditThreshold->setText(QString::number(digitizer.getTrigThreshold() - (1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE)));
+        return;
+    }
+    if (!ok || !digitizer.setTrigThreshold(value + (1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE))){
+
+        int32_t newValue = digitizer.getTrigThreshold() - (1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE);
+        //newValue < 0 ? ui->lineEditThreshold->setText("-" + QString::number(-newValue)) : ui->lineEditThreshold->setText(QString::number(newValue));
     }
     qDebug() << "Current threshold: " << (digitizer.getTrigThreshold());
 }
@@ -281,7 +291,24 @@ void MainWindow::on_lineEditOffset_returnPressed()
 {
     bool ok = false;
     const int32_t value = ui->lineEditOffset->text().toInt(&ok);
-    if (!ok || !digitizer.setOffset((1024 - value) * DC_OFFSET_TO_VOLTAGE))
+    int32_t newThreshold = digitizer.getTrigThreshold() - (1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE) + value;
+    qDebug() << "New Threshold " << newThreshold << ". Processing DC Offset...";
+    if (newThreshold > 1023) newThreshold = 1023;
+    if (newThreshold < 0) newThreshold = 0;
+    if (!ok || !digitizer.setOffset((1024 - value) * DC_OFFSET_TO_VOLTAGE)){
+        qDebug() << "In if/else...";
         ui->lineEditOffset->setText(QString::number(digitizer.getOffset()));
+    }
+    else{
+        qDebug() << "OK!";
+        digitizer.setTrigThreshold(newThreshold);
+        int32_t newValue = digitizer.getTrigThreshold() - (1024 - digitizer.getOffset() / DC_OFFSET_TO_VOLTAGE);
+        newValue < 0 ? ui->lineEditThreshold->setText("-" + QString::number(-newValue)) : ui->lineEditThreshold->setText(QString::number(newValue));
+
+    }
+    qDebug() << "====================";
+    qDebug() << "Current threshold: " << (digitizer.getTrigThreshold());
+    qDebug() << "Current DC Offset: " << (digitizer.getOffset());
+    qDebug() << "====================";
 }
 
