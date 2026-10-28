@@ -1,5 +1,6 @@
 #include "rootcontrol.h"
 #include "waveformserver.h"
+#include "settingsserver.h"
 
 #include <QCoreApplication>
 #include <QTimer>
@@ -13,6 +14,40 @@ int main(int argc, char *argv[])
 
     RootWidget rootWidget;
     WaveformServer server;
+    SettingsServer settingsServer(
+    [&rootWidget](const DigitizerProtocol::Params &params) {
+        const bool applied = rootWidget.applyGateSettings(
+            params.channel,
+            params.gateWidth,
+            params.gatePosition);
+
+        if (!applied) {
+            std::cerr
+                << "Invalid gate settings: channel="
+                << params.channel
+                << ", width=" << params.gateWidth
+                << ", position=" << params.gatePosition
+                << std::endl;
+
+            return;
+        }
+
+        std::cout
+            << "Gate settings applied: channel="
+            << params.channel
+            << ", width=" << params.gateWidth << "%"
+            << ", position=" << params.gatePosition << "%"
+            << std::endl;
+    });
+
+if (!settingsServer.listen(46464)) {
+    std::cerr
+        << "Cannot listen on settings port 46464: "
+        << settingsServer.errorString().toStdString()
+        << std::endl;
+
+    return 1;
+}
 
     quint16 selectedChannel = 0;
     bool displaysDirty = true;

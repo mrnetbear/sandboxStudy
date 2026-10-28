@@ -7,6 +7,7 @@
 #include <numeric>
 #include <cmath>
 
+
 TApplication *gApplication = nullptr;
 
 RootWidget::RootWidget()
@@ -67,14 +68,25 @@ double RootWidget::calculateEnergy(const std::vector<double> &samples) const
     return energy;
 }
 
-void RootWidget::processWaveform(const std::vector<double> &samples, quint64,
-                                 quint16, quint16)
+void RootWidget::processWaveform(const std::vector<double> &samples, quint64 timestamp,
+                                 quint16 board, quint16 channel)
 {
     if (samples.empty())
         return;
 
+    if (samples.size() < 2 ||
+    channel >= channelGateSettings.size()) {
+    return;
+    }
+
     currentWaveform = samples;
-    updateGateIndices(static_cast<int>(currentWaveform.size()));
+    displayedChannel = channel;
+    hasDisplayedWaveform = true;
+
+    updateGateForWaveform(
+        channel,
+        static_cast<int>(samples.size()));
+
     energyHist->Fill(calculateEnergy(currentWaveform));
     ++eventsThisSecond;
 
@@ -128,6 +140,91 @@ void RootWidget::drawWaveform()
     gateEndLine->Draw();
     waveformCanvas->Modified();
     waveformCanvas->Update();
+}
+
+void RootWidget::updateGateForWaveform(
+    quint16 channel,
+    int sampleCount)
+{
+    if (channel >= channelGateSettings.size() ||
+        sampleCount < 2) {
+        gateStart = 0;
+        gateEnd = 0;
+        return;
+    }
+
+    const GateSettings &settings =
+        channelGateSettings[channel];
+
+    const int widthSamples = std::clamp(
+        static_cast<int>(std::lround(
+            sampleCount * settings.widthPercent / 100.0)),
+        2,
+        sampleCount);
+
+    const double center =
+        sampleCount * settings.positionPercent / 100.0;
+
+    const int requestedStart =
+        static_cast<int>(std::lround(
+            center - widthSamples / 2.0));
+
+    gateStart = std::clamp(
+        requestedStart,
+        0,
+        sampleCount - widthSamples);
+
+    gateEnd = gateStart + widthSamples;
+}
+
+bool RootWidget::applyGateSettings(
+    quint16 channel,
+    quint16 widthPercent,
+    quint16 positionPercent)
+{
+    if (channel >= channelGateSettings.size() ||
+        widthPercent < 1 ||
+        widthPercent > 100 ||
+        positionPercent > 100) {
+        return false;
+    }
+
+    GateSettings &settings =
+        channelGateSettings[channel];
+
+    const bool changed =
+        settings.widthPercent != widthPercent ||
+        settings.positionPercent != positionPercent;
+
+    settings.widthPercent = widthPercent;
+    settings.positionPercent = positionPercent;
+
+    // Повторная отправка той же конфигурации, например
+    // после переподключения, не должна очищать спектр.
+    if (!changed)
+        return true;
+
+    // В текущем варианте гистограмма одна.
+    // Не смешиваем интегралы с разными настройками гейта.
+    if (energyHist)
+        energyHist->Reset();
+
+    if (hasDisplayedWaveform &&
+        displayedChannel == channel &&
+        !currentWaveform.empty()) {
+
+        updateGateForWaveform(
+            channel,
+            static_cast<int>(currentWaveform.size()));
+
+        // Только перерисовка: не добавляем последнее
+        // событие повторно в энергетический спектр.
+        drawWaveform();
+    }
+
+    drawSpectrum();
+
+    return true;
 }
 
 void RootWidget::drawSpectrum()

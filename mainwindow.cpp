@@ -6,6 +6,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    initializeSettingsConnection();
     this->setFixedSize(800, 600);
     //setCentralWidget(rootWidget);
     Logger::instance()->setTextEdit(ui->textEdit);
@@ -60,11 +61,114 @@ MainWindow::MainWindow(QWidget *parent)
                 // Обновляем счетчик на UI
                 ui->labelEventsCount->setText(QString(" %1").arg(digitizer.getTotalEventsCount()));
             });
+
+    sendParams(
+        0,
+        digitizer.getGateWidth(),
+        digitizer.getGatePosition());
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::initializeSettingsConnection()
+{
+    settingsSocket = new QTcpSocket(this);
+
+    settingsReconnectTimer = new QTimer(this);
+    settingsReconnectTimer->setInterval(1000);
+
+    settingsSendTimer = new QTimer(this);
+    settingsSendTimer->setSingleShot(true);
+    settingsSendTimer->setInterval(40);
+
+    connect(
+        settingsReconnectTimer,
+        &QTimer::timeout,
+        this,
+        [this] {
+            if (settingsSocket->state() ==
+                QAbstractSocket::UnconnectedState) {
+                settingsSocket->connectToHost(
+                    QStringLiteral("127.0.0.1"), 46464);
+            }
+        });
+
+    connect(
+        settingsSocket,
+        &QTcpSocket::connected,
+        this,
+        [this] {
+            // После перезапуска визуализатора повторяем настройки.
+            settingsDirty = !latestSettingsPacket.isEmpty();
+            flushSettingsPacket();
+        });
+
+    connect(
+        settingsSendTimer,
+        &QTimer::timeout,
+        this,
+        &MainWindow::flushSettingsPacket);
+
+    settingsReconnectTimer->start();
+
+    settingsSocket->connectToHost(
+        QStringLiteral("127.0.0.1"), 46464);
+}
+
+bool MainWindow::sendParams(
+    quint16 channel,
+    uint16_t gateWidth,
+    uint16_t gatePosition)
+{
+    if (channel >= 4 ||
+        gateWidth < 1 || gateWidth > 100 ||
+        gatePosition > 100) {
+        return false;
+    }
+
+    DigitizerProtocol::Params params;
+    params.channel = channel;
+    params.gateWidth = gateWidth;
+    params.gatePosition = gatePosition;
+
+    latestSettingsPacket =
+        DigitizerProtocol::makeParametersPacket(params);
+
+    settingsDirty = true;
+
+    // Быстрые изменения слайдера объединяются:
+    // отправляем последнее состояние.
+    settingsSendTimer->start();
+
+    return true;
+}
+
+void MainWindow::flushSettingsPacket()
+{
+    if (!settingsDirty ||
+        latestSettingsPacket.isEmpty() ||
+        settingsSocket->state() !=
+            QAbstractSocket::ConnectedState) {
+        return;
+    }
+
+    if (settingsSocket->bytesToWrite() > 4096) {
+        settingsSendTimer->start();
+        return;
+    }
+
+    const qint64 accepted =
+        settingsSocket->write(latestSettingsPacket);
+
+    if (accepted != latestSettingsPacket.size()) {
+        settingsSocket->abort();
+        return;
+    }
+
+    settingsDirty = false;
 }
 
 bool MainWindow::loadConfig(){
@@ -87,26 +191,6 @@ bool MainWindow::loadConfig(){
     qDebug() << "Done!";
     confFile.close();
     return 0;
-}
-
-bool MainWindow::sendParams(quint16 channel,
-                            uint16_t gateWidth, uint16_t gatePosition){
-    if  (!digitizer.openVisualizationConnection())
-        return false;
-
-    DigitizerProtocol::Params packetParams;
-    packetParams.channel = 0;
-    packetParams.gatePosition = digitizer.getGatePosition();
-    packetParams.gateWidth = digitizer.getGateWidth();
-
-    const QByteArray packet = DigitizerProtocol::makeParametersPacket(packetParams);
-    if(digitizer.visualizationSocket->write(packet) != packet.size() ||
-        !digitizer.visualizationSocket->waitForBytesWritten(100)) {
-        digitizer.closeVisualizationConnection();
-        return false;
-    }
-
-    return true;
 }
 
 void MainWindow::on_ButtonConnect_clicked()
@@ -263,7 +347,7 @@ void MainWindow::on_horizontalSliderGateWidth_sliderMoved(int position)
     sendParams(0, digitizer.getGateWidth(),
                digitizer.getGatePosition());
     qDebug() << "Current Gate Width: " << digitizer.getGateWidth();
-    QThread::msleep(10);
+    //QThread::msleep(10);
 }
 
 

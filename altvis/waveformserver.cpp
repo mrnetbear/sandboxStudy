@@ -157,35 +157,6 @@ void WaveformServer::parseInputBuffer()
 
             emit waveformReceived(event);
         }
-        else if (messageType ==
-                 DigitizerProtocol::MessageType::Parameters) {
-
-            // Три quint16: channel, gateWidth, gatePosition.
-            if (payloadSize != ParametersPayloadSize) {
-                emit protocolError(
-                    QStringLiteral("Invalid parameters payload size"));
-                continue;
-            }
-
-            DigitizerProtocol::Params params;
-
-            QDataStream stream(payload);
-            stream.setVersion(QDataStream::Qt_5_15);
-            stream >> params;
-
-            if (stream.status() != QDataStream::Ok ||
-                !stream.atEnd() ||
-                params.gateWidth < 1 ||
-                params.gateWidth > 100 ||
-                params.gatePosition > 100) {
-
-                emit protocolError(
-                    QStringLiteral("Invalid gate parameters"));
-                continue;
-            }
-
-            emit parametersReceived(params);
-        }
         else {
             // Пакет целиком уже извлечён: можно безопасно его пропустить.
             emit protocolError(

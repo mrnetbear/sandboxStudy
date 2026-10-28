@@ -1,7 +1,6 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-#include "./ui_mainwindow.h"
-#include "logger.h"
+
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QProcess>
@@ -11,7 +10,14 @@
 #include <QFileDialog>
 #include <QDebug>
 #include <QIntValidator>
+#include <QByteArray>
+#include <QTcpSocket>
+#include <QTimer>
+
 #include <unistd.h>
+
+#include "./ui_mainwindow.h"
+#include "logger.h"
 #include "dialogconnect.h"
 #include "dialogsettingvispath.h"
 #include "dialogprotocol.h"
@@ -71,5 +77,16 @@ private:
     QString pathToVis = "/home/mrnetlex/Documents/Progs/C++/qt-projects/sandboxStudyAlternative/altvis/build/rootVis";
     QString pathToConfig = "/home/mrnetlex/Documents/Progs/C++/qt-projects/sandboxStudyAlternative/config";
     DigitizerOperation digitizer;
+
+    void initializeSettingsConnection();
+    void flushSettingsPacket();
+
+    QTcpSocket *settingsSocket = nullptr;
+    QTimer *settingsReconnectTimer = nullptr;
+    QTimer *settingsSendTimer = nullptr;
+
+    // Пока один выбранный канал: храним его последнее сообщение.
+    QByteArray latestSettingsPacket;
+    bool settingsDirty = false;
 };
 #endif // MAINWINDOW_H

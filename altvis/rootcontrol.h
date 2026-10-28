@@ -17,6 +17,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <array>
 
 class RootWidget
 {
@@ -37,14 +38,30 @@ public:
     void setGateRange(int start, int end);
     std::pair<int, int> getGateRange() const { return {gateStart, gateEnd}; }
     void shutdownROOT();
+    bool applyGateSettings(quint16 channel,
+                       quint16 widthPercent,
+                       quint16 positionPercent);
 
 private:
     void setupCanvases();
     void drawWaveform();
     void drawSpectrum();
     void drawRate();
+
+    struct GateSettings {
+        quint16 widthPercent = 50;
+        quint16 positionPercent = 50;
+    };
+
+    std::array<GateSettings, 4> channelGateSettings{};
+
+    quint16 displayedChannel = 0;
+    bool hasDisplayedWaveform = false;
+
+    void updateGateForWaveform(quint16 channel, int sampleCount);
     
     void updateGateIndices(int sampleCount);
+    
 
     double gatePositionPercent = 50.0;
     double gateWidthPercent = 50.0;
