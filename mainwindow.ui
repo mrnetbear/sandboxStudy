@@ -75,7 +75,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLCDNumber" name="lcdNumberVoltage">
+       <widget class="QLCDNumber" name="lcdNumberCountRate">
         <property name="smallDecimalPoint">
          <bool>true</bool>
         </property>
