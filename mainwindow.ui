@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>600</height>
+    <height>700</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -23,9 +23,9 @@
    <widget class="QFrame" name="frame">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>10</y>
-      <width>241</width>
+      <x>10</x>
+      <y>0</y>
+      <width>251</width>
       <height>111</height>
      </rect>
     </property>
@@ -46,44 +46,51 @@
        <height>32</height>
       </rect>
      </property>
+     <property name="cursor">
+      <cursorShape>PointingHandCursor</cursorShape>
+     </property>
      <property name="text">
       <string>Start</string>
      </property>
     </widget>
-    <widget class="QWidget" name="layoutWidget">
+    <widget class="QFrame" name="frame_4">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>0</x>
        <y>10</y>
-       <width>223</width>
-       <height>38</height>
+       <width>241</width>
+       <height>41</height>
       </rect>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
-       <widget class="QLabel" name="label">
+       <widget class="QLabel" name="label_2">
         <property name="font">
          <font>
-          <family>Arial</family>
-          <pointsize>17</pointsize>
+          <pointsize>16</pointsize>
           <bold>true</bold>
          </font>
         </property>
         <property name="text">
-         <string>Count rate:</string>
+         <string>No of events:</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QLCDNumber" name="lcdNumberCountRate">
-        <property name="smallDecimalPoint">
-         <bool>true</bool>
+       <widget class="QLabel" name="labelEventsCount">
+        <property name="font">
+         <font>
+          <pointsize>20</pointsize>
+         </font>
         </property>
-        <property name="value" stdset="0">
-         <double>0.000000000000000</double>
-        </property>
-        <property name="intValue" stdset="0">
-         <number>0</number>
+        <property name="text">
+         <string>0</string>
         </property>
        </widget>
       </item>
@@ -176,7 +183,7 @@
       <x>440</x>
       <y>160</y>
       <width>331</width>
-      <height>341</height>
+      <height>481</height>
      </rect>
     </property>
     <property name="frameShape">
@@ -195,56 +202,13 @@
      </item>
     </layout>
    </widget>
-   <widget class="QFrame" name="frame_4">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>150</y>
-      <width>301</width>
-      <height>53</height>
-     </rect>
-    </property>
-    <property name="frameShape">
-     <enum>QFrame::StyledPanel</enum>
-    </property>
-    <property name="frameShadow">
-     <enum>QFrame::Raised</enum>
-    </property>
-    <layout class="QHBoxLayout" name="horizontalLayout_4">
-     <item>
-      <widget class="QLabel" name="label_2">
-       <property name="font">
-        <font>
-         <pointsize>20</pointsize>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string>No of events:</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="labelEventsCount">
-       <property name="font">
-        <font>
-         <pointsize>20</pointsize>
-        </font>
-       </property>
-       <property name="text">
-        <string>0</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
    <widget class="QFrame" name="frame_5">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>210</y>
-      <width>301</width>
-      <height>121</height>
+      <x>10</x>
+      <y>390</y>
+      <width>401</width>
+      <height>111</height>
      </rect>
     </property>
     <property name="frameShape">
@@ -256,7 +220,7 @@
     <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>40</x>
        <y>10</y>
        <width>284</width>
        <height>94</height>
@@ -269,7 +233,7 @@
          <widget class="QLabel" name="labelRecLength">
           <property name="font">
            <font>
-            <pointsize>14</pointsize>
+            <pointsize>12</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -282,7 +246,7 @@
          <widget class="QLabel" name="labelTrigThreshold">
           <property name="font">
            <font>
-            <pointsize>14</pointsize>
+            <pointsize>12</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -295,7 +259,7 @@
          <widget class="QLabel" name="labelDCOffset">
           <property name="font">
            <font>
-            <pointsize>14</pointsize>
+            <pointsize>12</pointsize>
             <bold>true</bold>
            </font>
           </property>
@@ -325,9 +289,9 @@
    <widget class="QFrame" name="frame_6">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>350</y>
-      <width>391</width>
+      <x>10</x>
+      <y>500</y>
+      <width>401</width>
       <height>151</height>
      </rect>
     </property>
@@ -345,6 +309,9 @@
        <width>211</width>
        <height>21</height>
       </rect>
+     </property>
+     <property name="cursor">
+      <cursorShape>OpenHandCursor</cursorShape>
      </property>
      <property name="maximum">
       <number>100</number>
@@ -453,6 +420,9 @@
        <height>20</height>
       </rect>
      </property>
+     <property name="cursor">
+      <cursorShape>OpenHandCursor</cursorShape>
+     </property>
      <property name="maximum">
       <number>100</number>
      </property>
@@ -516,6 +486,9 @@
        <height>20</height>
       </rect>
      </property>
+     <property name="cursor">
+      <cursorShape>OpenHandCursor</cursorShape>
+     </property>
      <property name="maximum">
       <number>100</number>
      </property>
@@ -528,6 +501,514 @@
      <property name="tickPosition">
       <enum>QSlider::TicksAbove</enum>
      </property>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="frame_channel">
+    <property name="geometry">
+     <rect>
+      <x>11</x>
+      <y>121</y>
+      <width>401</width>
+      <height>101</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QWidget" name="">
+     <property name="geometry">
+      <rect>
+       <x>180</x>
+       <y>10</y>
+       <width>191</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_6">
+      <item>
+       <widget class="QLabel" name="label_8">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH0</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_9">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH1</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_10">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH2</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_11">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH3</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QWidget" name="">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>40</y>
+       <width>148</width>
+       <height>54</height>
+      </rect>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_5">
+      <item>
+       <widget class="QLabel" name="label_7">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Write Waveform</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_12">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Trigger Source</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QWidget" name="">
+     <property name="geometry">
+      <rect>
+       <x>190</x>
+       <y>40</y>
+       <width>191</width>
+       <height>51</height>
+      </rect>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_6">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_7">
+        <item>
+         <widget class="QCheckBox" name="checkBoxW0">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <property name="tristate">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxW1">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxW2">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxW3">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_8">
+        <item>
+         <widget class="QCheckBox" name="checkBoxT0">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <property name="tristate">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxT1">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxT2">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxT3">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>50</x>
+      <y>110</y>
+      <width>81</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="autoFillBackground">
+     <bool>true</bool>
+    </property>
+    <property name="text">
+     <string>Channel</string>
+    </property>
+   </widget>
+   <widget class="QFrame" name="frame_7">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>239</y>
+      <width>401</width>
+      <height>101</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QWidget" name="">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>20</y>
+       <width>148</width>
+       <height>71</height>
+      </rect>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_7">
+      <item>
+       <widget class="QRadioButton" name="radioButtonSS">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Single Source</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonOR">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>OR</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonMN">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>M in N</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QWidget" name="">
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>60</y>
+       <width>121</width>
+       <height>29</height>
+      </rect>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>M:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="spinBoxM">
+        <property name="minimum">
+         <number>1</number>
+        </property>
+        <property name="maximum">
+         <number>4</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_14">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>N:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="lineEdit">
+        <property name="text">
+         <string>4</string>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QWidget" name="">
+     <property name="geometry">
+      <rect>
+       <x>150</x>
+       <y>20</y>
+       <width>241</width>
+       <height>28</height>
+      </rect>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_9">
+      <item>
+       <widget class="QLabel" name="labelCoincGate">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Coincidence gate, ns</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="lineEditCoinGate"/>
+      </item>
+     </layout>
+    </widget>
+   </widget>
+   <widget class="QLabel" name="label_13">
+    <property name="geometry">
+     <rect>
+      <x>19</x>
+      <y>230</y>
+      <width>181</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="autoFillBackground">
+     <bool>true</bool>
+    </property>
+    <property name="text">
+     <string>Launch Conditions</string>
+    </property>
+   </widget>
+   <widget class="QFrame" name="frame_8">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>340</y>
+      <width>401</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="autoFillBackground">
+     <bool>true</bool>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QWidget" name="">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>341</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_10">
+      <item>
+       <widget class="QRadioButton" name="radioButtonECH0">
+        <property name="font">
+         <font>
+          <pointsize>14</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH0</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonECH1">
+        <property name="font">
+         <font>
+          <pointsize>14</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH1</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonECH2">
+        <property name="font">
+         <font>
+          <pointsize>14</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH2</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonECH3">
+        <property name="font">
+         <font>
+          <pointsize>14</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH3</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </widget>
   </widget>

@@ -7,7 +7,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     initializeSettingsConnection();
-    this->setFixedSize(800, 600);
+    this->setFixedSize(800, 700);
     //setCentralWidget(rootWidget);
     Logger::instance()->setTextEdit(ui->textEdit);
     Logger::instance()->info("Application Started");
