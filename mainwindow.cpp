@@ -419,24 +419,28 @@ void MainWindow::on_lineEditOffset_returnPressed()
 void MainWindow::on_radioButtonECH0_clicked()
 {
     digitizer.setSelectedEditChannel(1);
+    qDebug() << "Selected Channel" << digitizer.getSelectedEditChannel()-1;
 }
 
 
 void MainWindow::on_radioButtonECH1_clicked()
 {
     digitizer.setSelectedEditChannel(2);
+    qDebug() << "Selected Channel" << digitizer.getSelectedEditChannel()-1;
 }
 
 
 void MainWindow::on_radioButtonECH2_clicked()
 {
     digitizer.setSelectedEditChannel(3);
+    qDebug() << "Selected Channel" << digitizer.getSelectedEditChannel()-1;
 }
 
 
 void MainWindow::on_radioButtonECH3_clicked()
 {
     digitizer.setSelectedEditChannel(4);
+    qDebug() << "Selected Channel" << digitizer.getSelectedEditChannel()-1;
 }
 
 
