@@ -40,6 +40,9 @@ public:
     bool setGatePosition(uint16_t newGatePosition);
     bool setGateWidth(uint16_t newGateWidth);
     bool setOffset(uint32_t newOffset);
+    bool setTrigChMask(uint16_t newTrigChMask);
+
+    bool setSelectedEditChannel(uint8_t newSelectedChannel);
 
     bool openVisualizationConnection();
     void closeVisualizationConnection();
@@ -58,6 +61,9 @@ public:
     uint16_t getGatePosition() const;
     uint16_t getGateWidth() const;
     uint32_t getOffset() const;
+    uint16_t getTrigChMask() const;
+
+    uint8_t getSelectedEditChannel() const;
 
 signals:
     void acquisitionStarted();
@@ -87,6 +93,9 @@ private:
     uint32_t trigThreshold = ZERO_TRESHOLD_STATE; //zero state
     uint16_t postTrigSize = 50; //percentage of the post trigger size
     uint32_t offset = ZERO_DC_OFFSET;
+    uint16_t trigChMask = 0x01; //one bit per channel
+
+    uint8_t selectedEditChannel = 1;
 
     char *buffer = nullptr;
     int handle[MAXNB]{};

@@ -73,6 +73,25 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+int16_t MainWindow::getSelectedChannels() const {
+    return ui->checkBoxW0->isChecked() + (ui->checkBoxW1->isChecked() << 1) +
+           (ui->checkBoxW2->isChecked() << 2) + (ui->checkBoxW3->isChecked() << 3);
+}
+int16_t MainWindow::getSelectedTriggers() const {
+    return ui->checkBoxT0->isChecked() + (ui->checkBoxT1->isChecked() << 1) +
+           (ui->checkBoxT2->isChecked() << 2) + (ui->checkBoxT3->isChecked() << 3);
+};
+
+bool MainWindow::sendChannelMask(int16_t newChannelMask){
+    digitizer.setChMask(newChannelMask);
+    return true;
+}
+
+bool MainWindow::sendTriggerMask(int16_t newTriggerMask){
+    digitizer.setTrigChMask(newTriggerMask);
+    return true;
+}
+
 void MainWindow::initializeSettingsConnection()
 {
     settingsSocket = new QTcpSocket(this);
@@ -394,5 +413,93 @@ void MainWindow::on_lineEditOffset_returnPressed()
     qDebug() << "Current threshold: " << (digitizer.getTrigThreshold());
     qDebug() << "Current DC Offset: " << (digitizer.getOffset());
     qDebug() << "====================";
+}
+
+
+void MainWindow::on_radioButtonECH0_clicked()
+{
+    digitizer.setSelectedEditChannel(1);
+}
+
+
+void MainWindow::on_radioButtonECH1_clicked()
+{
+    digitizer.setSelectedEditChannel(2);
+}
+
+
+void MainWindow::on_radioButtonECH2_clicked()
+{
+    digitizer.setSelectedEditChannel(3);
+}
+
+
+void MainWindow::on_radioButtonECH3_clicked()
+{
+    digitizer.setSelectedEditChannel(4);
+}
+
+
+void MainWindow::on_checkBoxW0_stateChanged(int arg1)
+{
+    sendChannelMask(getSelectedChannels());
+    if (!getSelectedChannels()) ui->checkBoxW0->setCheckState(Qt::Checked);
+    qDebug() << getSelectedChannels() << " to " << digitizer.getChMask();
+}
+
+
+void MainWindow::on_checkBoxW1_stateChanged(int arg1)
+{
+    sendChannelMask(getSelectedChannels());
+    if (!getSelectedChannels()) ui->checkBoxW1->setCheckState(Qt::Checked);
+    qDebug() << getSelectedChannels() << " to " << digitizer.getChMask();
+}
+
+
+void MainWindow::on_checkBoxW2_stateChanged(int arg1)
+{
+    sendChannelMask(getSelectedChannels());
+    if (!getSelectedChannels()) ui->checkBoxW2->setCheckState(Qt::Checked);
+    qDebug() << getSelectedChannels() << " to " << digitizer.getChMask();
+}
+
+
+void MainWindow::on_checkBoxW3_stateChanged(int arg1)
+{
+    sendChannelMask(getSelectedChannels());
+    if (!getSelectedChannels()) ui->checkBoxW3->setCheckState(Qt::Checked);
+    qDebug() << getSelectedChannels() << " to " << digitizer.getChMask();
+}
+
+
+void MainWindow::on_checkBoxT0_stateChanged(int arg1)
+{
+    sendTriggerMask(getSelectedTriggers());
+    if (!getSelectedTriggers()) ui->checkBoxT0->setCheckState(Qt::Checked);
+    qDebug() << getSelectedTriggers() << " to " << digitizer.getTrigChMask();
+}
+
+
+void MainWindow::on_checkBoxT1_stateChanged(int arg1)
+{
+    sendTriggerMask(getSelectedTriggers());
+    if (!getSelectedTriggers()) ui->checkBoxT1->setCheckState(Qt::Checked);
+    qDebug() << getSelectedTriggers() << " to " << digitizer.getTrigChMask();
+}
+
+
+void MainWindow::on_checkBoxT2_stateChanged(int arg1)
+{
+    sendTriggerMask(getSelectedTriggers());
+    if (!getSelectedTriggers()) ui->checkBoxT2->setCheckState(Qt::Checked);
+    qDebug() << getSelectedTriggers() << " to " << digitizer.getTrigChMask();
+}
+
+
+void MainWindow::on_checkBoxT3_stateChanged(int arg1)
+{
+    sendTriggerMask(getSelectedTriggers());
+    if (!getSelectedTriggers()) ui->checkBoxT3->setCheckState(Qt::Checked);
+    qDebug() << getSelectedTriggers() << " to " << digitizer.getTrigChMask();
 }
 

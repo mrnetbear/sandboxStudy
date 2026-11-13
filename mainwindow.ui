@@ -206,9 +206,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>390</y>
+      <y>360</y>
       <width>401</width>
-      <height>111</height>
+      <height>141</height>
      </rect>
     </property>
     <property name="frameShape">
@@ -220,8 +220,8 @@
     <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
-       <x>40</x>
-       <y>10</y>
+       <x>50</x>
+       <y>40</y>
        <width>284</width>
        <height>94</height>
       </rect>
@@ -282,6 +282,73 @@
          <widget class="QLineEdit" name="lineEditOffset"/>
         </item>
        </layout>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QWidget" name="layoutWidget">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>0</y>
+       <width>341</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_10">
+      <item>
+       <widget class="QRadioButton" name="radioButtonECH0">
+        <property name="font">
+         <font>
+          <pointsize>14</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH0</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonECH1">
+        <property name="font">
+         <font>
+          <pointsize>14</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH1</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonECH2">
+        <property name="font">
+         <font>
+          <pointsize>14</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH2</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonECH3">
+        <property name="font">
+         <font>
+          <pointsize>14</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>CH3</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -518,7 +585,7 @@
     <property name="frameShadow">
      <enum>QFrame::Raised</enum>
     </property>
-    <widget class="QWidget" name="">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>180</x>
@@ -582,7 +649,7 @@
       </item>
      </layout>
     </widget>
-    <widget class="QWidget" name="">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -620,7 +687,7 @@
       </item>
      </layout>
     </widget>
-    <widget class="QWidget" name="">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>190</x>
@@ -755,7 +822,7 @@
       <x>10</x>
       <y>239</y>
       <width>401</width>
-      <height>101</height>
+      <height>121</height>
      </rect>
     </property>
     <property name="frameShape">
@@ -764,13 +831,13 @@
     <property name="frameShadow">
      <enum>QFrame::Raised</enum>
     </property>
-    <widget class="QWidget" name="">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>0</x>
        <y>20</y>
        <width>148</width>
-       <height>71</height>
+       <height>92</height>
       </rect>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -818,7 +885,7 @@
       </item>
      </layout>
     </widget>
-    <widget class="QWidget" name="">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>150</x>
@@ -842,6 +909,12 @@
       </item>
       <item>
        <widget class="QSpinBox" name="spinBoxM">
+        <property name="readOnly">
+         <bool>false</bool>
+        </property>
+        <property name="keyboardTracking">
+         <bool>true</bool>
+        </property>
         <property name="minimum">
          <number>1</number>
         </property>
@@ -874,7 +947,7 @@
       </item>
      </layout>
     </widget>
-    <widget class="QWidget" name="">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>150</x>
@@ -924,92 +997,6 @@
     <property name="text">
      <string>Launch Conditions</string>
     </property>
-   </widget>
-   <widget class="QFrame" name="frame_8">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>340</y>
-      <width>401</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="autoFillBackground">
-     <bool>true</bool>
-    </property>
-    <property name="frameShape">
-     <enum>QFrame::StyledPanel</enum>
-    </property>
-    <property name="frameShadow">
-     <enum>QFrame::Raised</enum>
-    </property>
-    <widget class="QWidget" name="">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>10</y>
-       <width>341</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_10">
-      <item>
-       <widget class="QRadioButton" name="radioButtonECH0">
-        <property name="font">
-         <font>
-          <pointsize>14</pointsize>
-          <bold>true</bold>
-         </font>
-        </property>
-        <property name="text">
-         <string>CH0</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QRadioButton" name="radioButtonECH1">
-        <property name="font">
-         <font>
-          <pointsize>14</pointsize>
-          <bold>true</bold>
-         </font>
-        </property>
-        <property name="text">
-         <string>CH1</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QRadioButton" name="radioButtonECH2">
-        <property name="font">
-         <font>
-          <pointsize>14</pointsize>
-          <bold>true</bold>
-         </font>
-        </property>
-        <property name="text">
-         <string>CH2</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QRadioButton" name="radioButtonECH3">
-        <property name="font">
-         <font>
-          <pointsize>14</pointsize>
-          <bold>true</bold>
-         </font>
-        </property>
-        <property name="text">
-         <string>CH3</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

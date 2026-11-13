@@ -44,6 +44,9 @@ uint16_t DigitizerOperation::getPostTrigSize() const { return postTrigSize; }
 uint16_t DigitizerOperation::getGatePosition() const { return gatePosition; }
 uint16_t DigitizerOperation::getGateWidth() const { return gateWidth; }
 uint32_t DigitizerOperation::getOffset() const { return offset; }
+uint16_t DigitizerOperation::getTrigChMask() const { return trigChMask; }
+
+uint8_t DigitizerOperation::getSelectedEditChannel() const { return selectedEditChannel; }
 
 int DigitizerOperation::getTotalEventsCount() const
 {
@@ -131,6 +134,16 @@ bool DigitizerOperation::setGateWidth(uint16_t newGateWidth){
 
 bool DigitizerOperation::setOffset(uint32_t newOffset){
     this->offset = newOffset;
+    return true;
+}
+
+bool DigitizerOperation::setTrigChMask(uint16_t newTrigChMask){
+    this->trigChMask = newTrigChMask;
+    return true;
+}
+
+bool DigitizerOperation::setSelectedEditChannel(uint8_t newSelectedEditChannel) {
+    this->selectedEditChannel = newSelectedEditChannel;
     return true;
 }
 

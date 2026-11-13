@@ -39,6 +39,11 @@ public:
     ~MainWindow();
     bool loadConfig();
     bool sendParams(quint16 channel, uint16_t gateWidth, uint16_t gatePosition);
+    bool sendChannelMask(int16_t newChannelMask);
+    bool sendTriggerMask(int16_t newTriggerMask);
+
+    int16_t getSelectedChannels() const;
+    int16_t getSelectedTriggers() const;
 
 protected:
 
@@ -71,6 +76,30 @@ private slots:
     void on_horizontalSliderGatePosition_sliderMoved(int position);
 
     void on_lineEditOffset_returnPressed();
+
+    void on_radioButtonECH0_clicked();
+
+    void on_radioButtonECH1_clicked();
+
+    void on_radioButtonECH2_clicked();
+
+    void on_radioButtonECH3_clicked();
+
+    void on_checkBoxW0_stateChanged(int arg1);
+
+    void on_checkBoxW1_stateChanged(int arg1);
+
+    void on_checkBoxW2_stateChanged(int arg1);
+
+    void on_checkBoxW3_stateChanged(int arg1);
+
+    void on_checkBoxT0_stateChanged(int arg1);
+
+    void on_checkBoxT1_stateChanged(int arg1);
+
+    void on_checkBoxT2_stateChanged(int arg1);
+
+    void on_checkBoxT3_stateChanged(int arg1);
 
 private:
     Ui::MainWindow *ui;
